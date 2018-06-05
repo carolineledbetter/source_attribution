@@ -1,0 +1,2 @@
+DataRaw/* filter=lfs diff=lfs merge=lfs -text
+DataProcessed/* filter=lfs diff=lfs merge=lfs -text
