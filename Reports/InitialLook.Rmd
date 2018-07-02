@@ -2,6 +2,7 @@
 output: 
   pdf_document:
     fig_caption: true
+
 geometry: margin=0.5in
 ---
 
@@ -23,6 +24,7 @@ library(pander)
 
 ```{r summstats}
 set.alignment('center', row.names = 'left')
-panderOptions('table.split.table', Inf)
-pander(tbl, caption = 'Characterstics of Outbreaks by Source')
+panderOptions('keep.line.breaks', T)
+panderOptions('table.split.table', 140)
+pander(tbl, caption = 'Characterstics of Outbreaks by Food Source')
 ```
