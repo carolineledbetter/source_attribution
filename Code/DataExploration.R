@@ -138,12 +138,23 @@ Analysis <- droplevels(Analysis)
 Missing <- which(is.na(Analysis$Agent))
 Agents <- table(Analysis$Agent)
 Agents <- dimnames(Agents[Agents > 20])[[1]]
-Analysis$Agent <- factor(Analysis$Agent, levels = c(Agents, 'Other'))
-Analysis$Agent[is.na(Analysis$Agent)] <- 'Other'
+Blue <- c('Derby', 'Dublin', 'Give', 'Goldcoast', 'Group B', 'Group D1', 
+          'Hadar', 'Infantis', 'Mbandaka', 'Montevideo', 'Oranienburg', 
+          'Reading', 'Stanley', 'Typhimurium var Cope', 'Uganda')
+Greeen <- c('Javiana', 'Poona', 'Senftenberg')
+Red <- c('Agona', 'Anatum','Berta', 'Braenderup', 'Muenchen', 'Saintpaul', 
+         'Thompson')
+Analysis$Agent[Analysis$Agent %in% Blue] <- 'Blue'
+Analysis$Agent[Analysis$Agent %in% Green] <- 'Green'
+Analysis$Agent[Analysis$Agent %in% Red] <- 'Red'
+Analysis$Agent <- factor(Analysis$Agent, levels = c(Agents, 'Paratyphi B', 
+                                                    'Blue', 'Red', 'Green', 
+                                                    'Rare'))
+Analysis$Agent[is.na(Analysis$Agent)] <- 'Rare'
 Analysis$Agent[Missing] <- NA
 
 
-tbl <- table1(Analysis, vars, Category, incl_missing = T, incl_pvalues = F, 
+tbl <- Table1(Analysis, vars, Category, incl_missing = T, incl_pvalues = F, 
               rowvar_names = c('Percent Male', 'Percent Female', 
                                'Percent Unknown Sex', 'Perenct Under 1', 
                                'Percent 1 to 4', 'Percent 5 to 9', 
@@ -155,3 +166,9 @@ tbl <- table1(Analysis, vars, Category, incl_missing = T, incl_pvalues = F,
                                'Outbreak Length(Days)', 'Salmonella or STEC',  
                                'Season', 'Salm Serotype or STEC'), sigfig = 2)
 save(tbl, file = 'DataProcessed/tabl1.rda')
+Blue <- c('Derby', 'Dublin', 'Give', 'Goldcoast', 'Group B', 'Group D1', 
+          'Hadar', 'Infantis', 'Mbandaka', 'Montevideo', 'Oranienburg', 
+          'Reading', 'Stanley', 'Typhimurium var Cope', 'Uganda')
+Greeen <- c('Javiana', 'Poona', 'Senftenberg')
+Red <- c('Agona', 'Anatum','Berta', 'Braenderup', 'Muenchen', 'Saintpaul', 
+         'Thompson')
