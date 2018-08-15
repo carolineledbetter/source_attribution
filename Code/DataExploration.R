@@ -6,6 +6,7 @@
 library(ggplot2)
 library(CIDAtools)
 
+
 load('DataRaw/WHIT_20180502_NoWater.RData')
 summary(NORSMain)
 NORSMain$OutbreakLength <- difftime(NORSMain$LastExposure, 
@@ -26,14 +27,50 @@ NORSMain$SalmSTEC[NORSMain$Salmonella] <- 'Salmonella'
 table(NORSMain$SalmSTEC)
 # tbl <- Table1(c(vars, 'Season'), 'SalmSTEC', NORSMain, incl_missing = T, incl_pvalues = F)
 # save(tbl, file = 'DataProcessed/tabl1.rda')
-
-NORSMain$Init2 <- as.POSIXlt.POSIXct(NORSMain$InitialExposure)
-NORSMain$Season <- quarters.POSIXt(NORSMain$Init2) 
+################################################################################
+# Get Outbreak Season
+NORSMain$Season <- quarters(NORSMain$InitialExposure) 
 NORSMain$Season <- factor(NORSMain$Season, 
                           levels = c('Q1', 'Q2', 'Q3', 'Q4'), 
                           exclude = 'QNA', 
                           labels = c('Winter', 'Spring', 'Summer', 'Fall'))
-table(NORSMain$Season)
+table(NORSMain$Season, useNA = 'ifany')
+# use Last Exposure if available for NAs
+table(is.na(NORSMain$Season), is.na(NORSMain$LastExposure))
+NORSMain$Season2 <- quarters(NORSMain$LastExposure)
+NORSMain$Season2 <- factor(NORSMain$Season2, 
+                           levels = c('Q1', 'Q2', 'Q3', 'Q4'), 
+                           exclude = 'QNA', 
+                           labels = c('Winter', 'Spring', 'Summer', 'Fall'))
+table(NORSMain$Season, NORSMain$Season2, useNA = 'ifany')
+# helps with 700. 
+NORSMain$Season[is.na(NORSMain$Season)] <- 
+  NORSMain$Season2[is.na(NORSMain$Season)]
+table(NORSMain$Season, NORSMain$Season2, useNA = 'ifany')
+# lastly lets see if we can use the report date
+table(is.na(NORSMain$Season), is.na(NORSMain$LocalReportDate))
+NORSMain$Season3 <- quarters(NORSMain$LocalReportDate)
+NORSMain$Season3 <- factor(NORSMain$Season3, 
+                           levels = c('Q1', 'Q2', 'Q3', 'Q4'), 
+                           exclude = 'QNA', 
+                           labels = c('Winter', 'Spring', 'Summer', 'Fall'))
+# lets check how well they match up with existing seasons
+table(NORSMain$Season, NORSMain$Season3, useNA = 'ifany')
+# not well at all - maybe don't use
+# date first ill?
+table(is.na(NORSMain$Season), is.na(NORSMain$DateFirstIll))
+# bingo!
+# let's see how well it matches up
+NORSMain$Season3 <- quarters(NORSMain$DateFirstIll)
+NORSMain$Season3 <- factor(NORSMain$Season3, 
+                           levels = c('Q1', 'Q2', 'Q3', 'Q4'), 
+                           exclude = 'QNA', 
+                           labels = c('Winter', 'Spring', 'Summer', 'Fall'))
+table(NORSMain$Season, NORSMain$Season3, useNA = 'ifany')
+# pretty good - let's use this
+NORSMain$Season[is.na(NORSMain$Season)] <- 
+  NORSMain$Season3[is.na(NORSMain$Season)]
+table(NORSMain$Season, useNA = 'ifany')
 
 summary(`__IFSACCommodityData`)
 table(`__IFSACCommodityData`$IFSAC_MMWR)
@@ -141,7 +178,7 @@ Agents <- dimnames(Agents[Agents > 20])[[1]]
 Blue <- c('Derby', 'Dublin', 'Give', 'Goldcoast', 'Group B', 'Group D1', 
           'Hadar', 'Infantis', 'Mbandaka', 'Montevideo', 'Oranienburg', 
           'Reading', 'Stanley', 'Typhimurium var Cope', 'Uganda')
-Greeen <- c('Javiana', 'Poona', 'Senftenberg')
+Green <- c('Javiana', 'Poona', 'Senftenberg')
 Red <- c('Agona', 'Anatum','Berta', 'Braenderup', 'Muenchen', 'Saintpaul', 
          'Thompson')
 Analysis$Agent[Analysis$Agent %in% Blue] <- 'Blue'
@@ -166,9 +203,6 @@ tbl <- Table1(Analysis, vars, Category, incl_missing = T, incl_pvalues = F,
                                'Outbreak Length(Days)', 'Salmonella or STEC',  
                                'Season', 'Salm Serotype or STEC'), sigfig = 2)
 save(tbl, file = 'DataProcessed/tabl1.rda')
-Blue <- c('Derby', 'Dublin', 'Give', 'Goldcoast', 'Group B', 'Group D1', 
-          'Hadar', 'Infantis', 'Mbandaka', 'Montevideo', 'Oranienburg', 
-          'Reading', 'Stanley', 'Typhimurium var Cope', 'Uganda')
-Greeen <- c('Javiana', 'Poona', 'Senftenberg')
-Red <- c('Agona', 'Anatum','Berta', 'Braenderup', 'Muenchen', 'Saintpaul', 
-         'Thompson')
+
+
+

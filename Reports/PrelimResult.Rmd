@@ -1,0 +1,42 @@
+---
+output: 
+  pdf_document:
+    fig_caption: true
+geometry: margin=.5in
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+knitr::opts_knit$set(root.dir = '../')
+```
+
+**Project:**`r CIDAtools::ProjectName()`
+**PI:**`r CIDAtools::ProjectPI()`  
+**Prepared By:**`r CIDAtools::ProjectAnalyst()`  
+**Date:** `r paste(format(Sys.Date(), '%m/%d/%Y'))`  
+
+```{r setup, include=FALSE}
+library(CIDAtools)
+library(pander)
+load(file = 'DataProcessed/Results.rda')
+load(file = 'DataProcessed/DataClean.RData')
+```
+
+```{r table1}
+names(Analysis) <- gsub('Percent', 'Pct', names(Analysis))
+names(Analysis) <- gsub('Unknown', 'Unk', names(Analysis))
+names(Analysis) <- gsub('Exposure', 'Exp', names(Analysis))
+tbl <- Table1(Analysis, -c(CDCID, Category2, Category), 
+              Category2, incl_missing = T, sigfig = 1)
+panderOptions('table.split.table', 150)
+panderOptions('keep.line.breaks', T)
+pander(tbl)
+```
+
+\newpage
+
+```{r result, eval=T}
+pander(Results2)
+```
+
+
