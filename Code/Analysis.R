@@ -18,6 +18,7 @@ library(doParallel)
 cl <- makeCluster(detectCores() -1)
 registerDoParallel(cl)
 
+
 Analysis$Geography <- factor('Missing', levels = c("MultiState", 
                                               "MultiCounty",
                                               'SingleCounty', 
@@ -31,13 +32,23 @@ table(Analysis$MultiCountyExposure,
       Analysis$MultiStateExposure, 
       Analysis$Geography, 
       useNA = 'ifany')
-Analysis <- subset(Analysis, select = -c(Category, CDCID, OutbreakLength, 
+Analysis <- subset(Analysis, select = -c(CDCID, OutbreakLength, 
                                          HospPercent, DeathsNum, DeathsInfo, 
                                          HospitalNum, HospitalInfo, SalmSTEC, 
                                          DeathsPct, MultiCountyExposure, 
                                          MultiStateExposure))
+Analysis$Category <- factor(Analysis$Category, levels = c("Eggs", 
+                                                          "Meat", 
+                                                          "Poultry", 
+                                                          "Produce", 
+                                                          "AnimalContact"), 
+                            labels = c("Eggs", 
+                                       "MeatPoultry", 
+                                       "MeatPoultry", 
+                                       "Produce", 
+                                       "AnimalContact"))
 vars <- seq_along(Analysis)
-first <- which(names(Analysis) == 'Category2')
+first <- which(names(Analysis) == 'Category')
 vars <- setdiff(vars, first)
 Analysis <- Analysis[, c(first, vars)]
 rm(vars, first)
@@ -47,15 +58,15 @@ names(Analysis)[nearZeroVar(Analysis)]
 
 
 set.seed(107)
-inTrain <- createDataPartition(y = Analysis$Category2, 
+inTrain <- createDataPartition(y = Analysis$Category, 
                                p = .75, 
                                list = F)
 training <- Analysis[inTrain, ]
 testing <- Analysis[-inTrain, ]
 
 
-trainX <- subset(training, select = -Category2)
-trainY <- training[, "Category2"]
+trainX <- subset(training, select = -Category)
+trainY <- training[, 'Category', drop = T]
 
 seeds <- vector(mode = "list", length = nrow(training) + 1)
 seeds <- lapply(seeds, function(x) 1:20)
@@ -105,29 +116,20 @@ models$FDA <- train(trainX, trainY,
                     tuneLength = 4)
 
 beepr::beep('ready')
-testing$Category2 <- factor(testing$Category2, 
-                            levels = c("Seafood", 
-                                       "EggsPoultry", 
-                                       "Dairy", 
-                                       "Meat",  
-                                       "NutsSeeds",
-                                       "Veggies", 
-                                       "Fruits", 
-                                       "GrainsBeans", 
-                                       "AnimalContact"))
+
 Pred_Probs <- lapply(models, predict, newdata = testing[, -1],  
                      type = 'prob')
 
-ordtest <- order(testing$Category2)
+ordtest <- order(testing$Category)
 orderedtest <- testing[ordtest, ]
 Pred_Probs <- lapply(Pred_Probs, function(l) {
   l <- l[ordtest, ]
-  l$Actual <- as.numeric(orderedtest$Category2)
+  l$Actual <- as.numeric(orderedtest$Category)
   l$ID <- 1:nrow(l)
   return(l)})
 
-y_axis <- data.frame(Ticks = which(!duplicated(orderedtest$Category2)),
-                     Labels = levels(orderedtest$Category2))
+y_axis <- data.frame(Ticks = which(!duplicated(orderedtest$Category)),
+                     Labels = levels(orderedtest$Category))
 y_axis$LabelPos <- diff(c(y_axis$Ticks, nrow(testing)))/2 + y_axis$Ticks
 MeltedPredictions <- lapply(Pred_Probs, reshape2::melt, 
                             id.vars = c('ID', 'Actual'),  
@@ -152,8 +154,8 @@ lapply(MeltedPredictions, heat_map)
 
 
 Pred_Probs <- lapply(Pred_Probs, function(l) {
-  l$obs <- factor(l$Actual, 
-                     levels = levels(orderedtest$Category2))
+  l$obs <- factor(l$Actual,
+                     labels = levels(orderedtest$Category))
   return(l)})
 
 AdaBag <- predict(models[[1]], testing[-1], type = 'prob')
@@ -174,4 +176,19 @@ multiClassSummary(FDA, lev = levels(FDA$obs))
 mnLogLoss(FDA, lev = levels(FDA$obs))
 stopCluster(cl)
 
-
+Pred_accuracy <- lapply(Pred_Probs, function(l){
+  l[, 1:nlevels(l$obs)] <- lapply(l[, 1:nlevels(l$obs)], 
+                                  cut, breaks = c(0, .25, .50, .75, 1), 
+                                  include.lowest = T)
+  l <- droplevels(l)
+  return(l)
+  })
+lapply(Pred_accuracy, function(l){
+  p <- list()
+  for(i in 1:nlevels(l$obs)){
+    p[[i]] <- 
+    prop.table(table(l[, i], l$Actual == i), 1)[, 2]
+  }; remove(i)
+  names(p) <- levels(l$obs)
+  return(p)
+})

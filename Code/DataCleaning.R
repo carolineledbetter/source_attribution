@@ -47,37 +47,28 @@ IFSAC <- droplevels(IFSAC)
 
 # Only include outbreaks with an identifiable single source
 Analysis <- 
-  IFSAC[IFSAC$IFSACLevel1 %in% c('Aquatic Animals', 'Land Animals', 'Plant'), ]
+  IFSAC[IFSAC$IFSACLevel1 %in% c('Land Animals', 'Plant'), ]
+Analysis <- droplevels(Analysis)
 table(Analysis$IFSACLevel2)
 
 # exclude game(9), oils-sugars(1), and other aquatic animals(1)
-Analysis <- Analysis[!Analysis$IFSACLevel2 %in% 
-                       c('Game', 'Oils-sugars', 'Other Aquatic Animals'), ]
+Analysis <- subset(Analysis, !IFSACLevel2 %in% 
+                     c('Game', 'Oils-sugars', 'Nuts-seeds', 'Grains-beans', 
+                       'Dairy'))
 Analysis$Category <- factor(NA, 
-                            levels = c('Fish', 'Shell Fish', 'Eggs', 
-                                       'Fluid milk', 
-                                       'Solid/semi-solid dairy products', 
-                                       'Meat', 'Poultry', 'Vegetables',
-                                       'Seeded Vegetables', 
-                                       'Vegetable Row Crops', 'Fruits', 
-                                       'Grains-beans', 'Nuts-seeds', 
-                                       'Animal Contact'))
+                            levels = c('Eggs', 
+                                       'Meat', 'Poultry', 'Produce',
+                                       'AnimalContact'))
 Analysis$Category[!Analysis$IFSACLevel2 %in% 
-                    c('Dairy', 'Produce', 'Meat-Poultry') ] <- 
+                    c('Meat-Poultry') ] <- 
   Analysis$IFSACLevel2[!Analysis$IFSACLevel2 %in% 
-                         c('Dairy', 'Produce', 'Meat-Poultry') ]
+                         c('Meat-Poultry') ]
 
 Analysis$Category[Analysis$IFSACLevel2 %in% 
-                    c('Dairy', 'Produce', 'Meat-Poultry') ] <- 
+                    c('Dairy', 'Meat-Poultry') ] <- 
   Analysis$IFSACLevel3[Analysis$IFSACLevel2 %in% 
-                         c('Dairy', 'Produce', 'Meat-Poultry') ]
+                         c('Dairy', 'Meat-Poultry') ]
 
-Analysis$Category[Analysis$IFSACLevel5 %in% c('Seeded Vegetables', 
-                                              'Vegetable Row Crops')] <- 
-  Analysis$IFSACLevel5[Analysis$IFSACLevel5 %in% c('Seeded Vegetables', 
-                                                   'Vegetable Row Crops')]
-levels(Analysis$Category)[levels(Analysis$Category) == 'Vegetables'] <- 
-  'Vegetables Other'
 
 Analysis <- subset(Analysis, !is.na(Category))
 table(Analysis$Category, useNA = 'ifany')
@@ -88,7 +79,7 @@ table(Analysis$Category, useNA = 'ifany')
 SelectNORS <- subset(NORSMain, CDCID %in% Analysis$CDCID | 
                        PrimaryMode == 'Animal Contact')
 Analysis <- merge(Analysis, SelectNORS, by = 'CDCID', all = T)
-Analysis$Category[Analysis$PrimaryMode == 'Animal Contact'] <- "Animal Contact"
+Analysis$Category[Analysis$PrimaryMode == 'Animal Contact'] <- "AnimalContact"
 Analysis$OutbreakLength <- as.numeric(Analysis$OutbreakLength)
 
 Logical <- grep('^Multi.+Exposure|^Multi.+Residence', names(Analysis))
@@ -197,51 +188,6 @@ marginplot(Analysis[, c("Category", "PercentAgeUnknown")])
 table(Analysis$Category, is.na(Analysis$PercentAgeUnknown))
 prop.table(table(Analysis$Category, is.na(Analysis$PercentAgeUnknown)), 1)
 
-Analysis$Category <- factor(Analysis$Category, 
-                            levels = c("Fish", 
-                                       "Shell Fish", 
-                                       "Eggs",                           
-                                       "Fluid milk", 
-                                       "Solid/semi-solid dairy products", 
-                                       "Meat",                          
-                                       "Poultry", 
-                                       "Vegetables Other", 
-                                       "Seeded Vegetables",              
-                                       "Vegetable Row Crops", 
-                                       "Fruits", 
-                                       "Grains-beans",                   
-                                       "Nuts-seeds", 
-                                       "Animal Contact"), 
-                            labels = c("Fish", 
-                                       "ShellFish", 
-                                       "Eggs",                           
-                                       "Milk", 
-                                       "Dairy", 
-                                       "Meat",                          
-                                       "Poultry", 
-                                       "VegOther", 
-                                       "SeededVeg",              
-                                       "VegRowCrops", 
-                                       "Fruits", 
-                                       "GrainsBeans",                   
-                                       "NutsSeeds", 
-                                       "AnimalContact"))
-Analysis$Category2 <- Analysis$Category 
-levels(Analysis$Category2) <- list('Seafood' = c("Fish", 
-                                                 "ShellFish"), 
-                                   'EggsPoultry' = c("Eggs",                         
-                                                      "Poultry"), 
-                                   'Dairy' = c("Milk", 
-                                               "Dairy"), 
-                                   'Meat' = 'Meat', 
-                                   'NutsSeeds' = 'NutSeeds',
-                                   'Veggies' = c("VegOther", 
-                                                 "SeededVeg",              
-                                                 "VegRowCrops"), 
-                                   'Fruits' = 'Fruits', 
-                                   "GrainsBeans" = "GrainsBeans",  
-                                   'AnimalContact' = 'AnimalContact')
-
-table(Analysis$Category, Analysis$Category2)
+table(Analysis$Season, useNA = 'ifany')
 
 save(Analysis, file = 'DataProcessed/DataClean.RData')
