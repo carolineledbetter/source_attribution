@@ -46,8 +46,9 @@ IFSAC[, 8:14] <- lapply(IFSAC[, 8:14], factor)
 IFSAC <- droplevels(IFSAC)
 
 # Only include outbreaks with an identifiable single source
-Analysis <- 
-  IFSAC[IFSAC$IFSACLevel1 %in% c('Land Animals', 'Plant'), ]
+Analysis <- subset(Analysis, IFSACLevel1 %in% 
+                     c('Aquatic Animals', 'Land Animals', 'Other', 
+                       'Plant'))
 Analysis <- droplevels(Analysis)
 table(Analysis$IFSACLevel2)
 
@@ -58,7 +59,7 @@ Analysis <- subset(Analysis, !IFSACLevel2 %in%
 Analysis$Category <- factor(NA, 
                             levels = c('Eggs', 
                                        'Meat', 'Poultry', 'Produce',
-                                       'AnimalContact'))
+                                       'AnimalContact', 'Other'))
 Analysis$Category[!Analysis$IFSACLevel2 %in% 
                     c('Meat-Poultry') ] <- 
   Analysis$IFSACLevel2[!Analysis$IFSACLevel2 %in% 
@@ -70,8 +71,9 @@ Analysis$Category[Analysis$IFSACLevel2 %in%
                          c('Dairy', 'Meat-Poultry') ]
 
 
-Analysis <- subset(Analysis, !is.na(Category))
+Analysis$Category[is.na(Analysis$Category)] <- 'Other'
 table(Analysis$Category, useNA = 'ifany')
+table(Analysis$IFSACLevel1, Analysis$Category, useNA = 'ifany')
 
 ################################################################################
 # Include only outbreaks with identified food source or animal contact
@@ -191,3 +193,4 @@ prop.table(table(Analysis$Category, is.na(Analysis$PercentAgeUnknown)), 1)
 table(Analysis$Season, useNA = 'ifany')
 
 save(Analysis, file = 'DataProcessed/DataClean.RData')
+
