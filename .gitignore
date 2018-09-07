@@ -1,2 +1,7 @@
 *.zip
 .Rproj.user
+**/*.ldb
+**/DataProcessed/*
+!**/ReadMe.md
+!**/Analysis*
+!**/DataClean.RData

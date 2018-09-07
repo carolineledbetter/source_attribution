@@ -381,7 +381,7 @@ Pred_accuracy3 <- lapply(Pred_Probs3, function(l){
   names(p) <- levels(l$obs)[-5]
   return(p)
 }) -> ForGraph)
-
+rm(p)
 ForGraph <- mapply(function(l, name){
   l <- as.data.frame(l)
   l$Model <- name
@@ -406,11 +406,11 @@ ggplot(ForGraph, aes(x = Bins, y = PercentCorrect, group = `Outbreak Source`,
                      colour = `Outbreak Source`)) + 
   geom_point() + geom_line() + facet_wrap(~ Model) + theme_classic() + 
   scale_x_continuous(breaks = seq(0.1, 0.9, 0.2)) + 
-  scale_y_continuous(breaks = seq(0.1, 0.9, 0.2))
+  scale_y_continuous(breaks = seq(0.1, 0.9, 0.2)) +
   labs(xlab = 'Bin Midpoint', 
        ylab = 'Observed Event Proportion', 
        title = 'Calibration Plots For All Models')
-
+ggsave('Reports/Figures/CalibrationPlots.png')
 
 
 BrierScore <- lapply(MeltedPredictions2, function(l){
@@ -421,3 +421,5 @@ BrierScore <- lapply(MeltedPredictions2, function(l){
   l$inner <- (l$y - l$PredProb)^2
   BS <- sum(l$inner)/N
 })
+
+save.image('DataProcessed/AnalysisWorkspace.Rdata')

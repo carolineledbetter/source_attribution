@@ -1,2 +1,5 @@
-DataRaw/* filter=lfs diff=lfs merge=lfs -text
-DataProcessed/* filter=lfs diff=lfs merge=lfs -text
+Data*/*/* filter=lfs diff=lfs merge=lfs -text
+*/ReadMe.md !filter !diff !merge text=auto
+**/*.RData filter=lfs diff=lfs merge=lfs -text locked
+**/*.rda filter=lfs diff=lfs merge=lfs -text locked
+*/*.mdb filter=lfs diff=lfs merge=lfs -text locked
