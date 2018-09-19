@@ -409,7 +409,7 @@ ggplot(ForGraph, aes(x = Bins, y = PercentCorrect, group = `Outbreak Source`,
   scale_y_continuous(breaks = seq(0.1, 0.9, 0.2)) +
   labs(xlab = 'Bin Midpoint', 
        ylab = 'Observed Event Proportion', 
-       title = 'Calibration Plots For All Models')
+       title = 'Calibration Plots For All Models') + geom_abline(slope = 1) + 
 ggsave('Reports/Figures/CalibrationPlots.png')
 
 
