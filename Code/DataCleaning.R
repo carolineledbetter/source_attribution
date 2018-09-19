@@ -47,14 +47,11 @@ IFSAC <- droplevels(IFSAC)
 
 # Only include outbreaks with an identifiable single source
 Analysis <- 
-  IFSAC[IFSAC$IFSACLevel1 %in% c('Land Animals', 'Plant'), ]
+  IFSAC[IFSAC$IFSACLevel1 %in% c('Land Animals', 'Plant', 'Other', 
+                                 'Aquatic Animals'), ]
 Analysis <- droplevels(Analysis)
 table(Analysis$IFSACLevel2)
 
-# exclude game(9), oils-sugars(1), and other aquatic animals(1)
-Analysis <- subset(Analysis, !IFSACLevel2 %in% 
-                     c('Game', 'Oils-sugars', 'Nuts-seeds', 'Grains-beans', 
-                       'Dairy'))
 Analysis$Category <- factor(NA, 
                             levels = c('Eggs', 
                                        'Meat', 'Poultry', 'Produce',
@@ -65,14 +62,16 @@ Analysis$Category[!Analysis$IFSACLevel2 %in%
                          c('Meat-Poultry') ]
 
 Analysis$Category[Analysis$IFSACLevel2 %in% 
-                    c('Dairy', 'Meat-Poultry') ] <- 
+                    c('Meat-Poultry') ] <- 
   Analysis$IFSACLevel3[Analysis$IFSACLevel2 %in% 
-                         c('Dairy', 'Meat-Poultry') ]
+                         c('Meat-Poultry') ]
 
 
 Analysis$Category[is.na(Analysis$Category)] <- 'Other'
 table(Analysis$Category, useNA = 'ifany')
 table(Analysis$IFSACLevel1, Analysis$Category, useNA = 'ifany')
+table(Analysis$IFSACLevel2, Analysis$Category, useNA = 'ifany')
+table(Analysis$IFSACLevel3, Analysis$Category, useNA = 'ifany')
 
 ################################################################################
 # Include only outbreaks with identified food source or animal contact
