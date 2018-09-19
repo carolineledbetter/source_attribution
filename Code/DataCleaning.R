@@ -46,9 +46,8 @@ IFSAC[, 8:14] <- lapply(IFSAC[, 8:14], factor)
 IFSAC <- droplevels(IFSAC)
 
 # Only include outbreaks with an identifiable single source
-Analysis <- subset(Analysis, IFSACLevel1 %in% 
-                     c('Aquatic Animals', 'Land Animals', 'Other', 
-                       'Plant'))
+Analysis <- 
+  IFSAC[IFSAC$IFSACLevel1 %in% c('Land Animals', 'Plant'), ]
 Analysis <- droplevels(Analysis)
 table(Analysis$IFSACLevel2)
 
