@@ -123,13 +123,24 @@ table(Analysis$Agent, Analysis$SalmSTEC, useNA = 'ifany')
 
 Analysis <- droplevels(Analysis)
 Agents <- table(Analysis$Agent)
-Agents <- dimnames(Agents[Agents > 20])[[1]]
+Agents <- dimnames(Agents[Agents < 20 & Agents > 3])[[1]]
 NonSpecific <- c('Agona', 'Anatum','Berta', 'Mbandaka', 'Muenchen', 'Saintpaul', 
                  'Stanley', 'Thompson')
 PrimaryAnimal <- c('Derby', 'Group B', 'Hadar', 'Infantis', 'Johannesburg', 
                    'Montevideo', 'Oranienburg', 'Reading', 'Sandiego', 
                    'Typhimurium var Cope', 'Uganda')
 PrimaryPlant <- c('Cubana', 'Poona', 'Senftenberg', 'Virchow')
+RareAgents <- subset(Analysis, Agent %in% Agents & (IFSACLevel1 %in% 
+                       c('Land Animals', 'Plant', 'Aquatic Animals') | 
+                       Category == "AnimalContact"), 
+                     select = c(IFSACLevel1, Agent))
+RareAgents$IFSACLevel1 <- factor(RareAgents$IFSACLevel1, 
+                                 levels = c('Plant', 'Aquatic Animals', 
+                                            'Land Animals', 'AnimalContact'))
+RareAgents$IFSACLevel1[is.na(RareAgents$IFSACLevel1)] <- 'AnimalContact'
+RareAgents <- RareAgents[order(RareAgents$IFSACLevel1), ]
+ggplot(RareAgents, aes(x = Agent, y = IFSACLevel1)) + geom_count() + 
+  theme_classic()
 
 Analysis$Agent[Analysis$Agent %in% NonSpecific] <- 'NonSpecific Sero group'
 Analysis$Agent[Analysis$Agent %in% PrimaryPlant] <- 'Primary Plant Sero group'
