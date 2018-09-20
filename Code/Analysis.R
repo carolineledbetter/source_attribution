@@ -381,7 +381,7 @@ Pred_accuracy3 <- lapply(Pred_Probs3, function(l){
   names(p) <- levels(l$obs)[-5]
   return(p)
 }) -> ForGraph)
-rm(p)
+
 ForGraph <- mapply(function(l, name){
   l <- as.data.frame(l)
   l$Model <- name
@@ -402,14 +402,24 @@ ForGraph$Bins <- factor(ForGraph$Bins,
                                    "(0.8,1]"), 
                         labels = seq(0.1, 0.9, 0.2))
 ForGraph$Bins <- as.numeric(as.character(ForGraph$Bins))
+
+ForGraph$Model <- factor(ForGraph$Model, 
+                         levels = c('AdaBag', 'CART', 
+                                    'FDA', 'kknn'), 
+                         labels = c('Adaptive Boosting Classification Trees', 
+                                    'Classification and Regression Trees (CART)', 
+                                    'Flexible Discriminant Analysis', 
+                                    'Weighted k-Nearest Neighbors'))
+
 ggplot(ForGraph, aes(x = Bins, y = PercentCorrect, group = `Outbreak Source`, 
                      colour = `Outbreak Source`)) + 
   geom_point() + geom_line() + facet_wrap(~ Model) + theme_classic() + 
   scale_x_continuous(breaks = seq(0.1, 0.9, 0.2)) + 
   scale_y_continuous(breaks = seq(0.1, 0.9, 0.2)) +
-  labs(xlab = 'Bin Midpoint', 
-       ylab = 'Observed Event Proportion', 
-       title = 'Calibration Plots For All Models') + geom_abline(slope = 1) + 
+  labs(x = 'Bin Midpoint', 
+       y = 'Observed Event Proportion', 
+       title = 'Calibration Plots For All Models') + 
+  geom_abline(slope = 1)  
 ggsave('Reports/Figures/CalibrationPlots.png')
 
 
