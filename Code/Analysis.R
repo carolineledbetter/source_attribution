@@ -433,3 +433,7 @@ BrierScore <- lapply(MeltedPredictions2, function(l){
 })
 
 save.image('DataProcessed/AnalysisWorkspace.Rdata')
+finalchoice <- models2$kknn
+save(finalchoice, file = 'DataProcessed/knnnmodelobj.rda')
+input_skeleton <- trainX[0, ]
+save(input_skeleton, file = 'DataProcessed/FileSkeleton.rda')
