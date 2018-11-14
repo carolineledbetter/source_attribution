@@ -6,6 +6,7 @@
 #
 #    http://shiny.rstudio.com/
 #
+library(shiny)
 load(file = 'knnnmodelobj.rda')
 load(file = 'FileSkeleton.rda')
 NonSpecific <- c('Agona', 'Anatum','Berta', 'Mbandaka', 'Muenchen', 'Saintpaul', 
@@ -14,14 +15,17 @@ PrimaryAnimal <- c('Derby', 'Group B', 'Hadar', 'Infantis', 'Johannesburg',
                    'Montevideo', 'Oranienburg', 'Reading', 'Sandiego', 
                    'Typhimurium var Cope', 'Uganda')
 PrimaryPlant <- c('Cubana', 'Poona', 'Senftenberg', 'Virchow')
-Serogroups <- c(levels(input_skeleton$Agent), NonSpecific, PrimaryAnimal, 
+SalmSeroTypes <- levels(input_skeleton$Agent)
+SalmSeroTypes <- SalmSeroTypes[!SalmSeroTypes %in% c('NonSpecific Sero group', 
+                                    "Primary Animal Sero group", 
+                                    "Primary Plant Sero group")]
+Serogroups <- c(SalmSeroTypes, NonSpecific, PrimaryAnimal, 
                 PrimaryPlant)
 names(Serogroups) <- Serogroups
-Serogroups[Serogroups %in% NonSpecific] <- 'NonSpecific Sero group'
-Serogroups[Serogroups %in% PrimaryAnimal] <- "Primary Animal Sero group"
-Serogroups[Serogroups %in% PrimaryPlant] <- "Primary Animal Sero group"
-library(shiny)
-
+names(Serogroups)[Serogroups %in% 'Salm unk sero'] <- 'Unknown'
+names(Serogroups)[Serogroups %in% 'Rare'] <- "Other"
+names(Serogroups)[Serogroups %in% 'STEC'] <- " "
+Serogroups <- as.list(Serogroups)
 # Define UI for application that draws a histogram
 ui <- fluidPage(
 
@@ -37,9 +41,15 @@ ui <- fluidPage(
                          max = Inf, 
                          value = 0), 
             selectInput('Season', 'Season', 
-                        choices = levels(input_skeleton$Season)), 
-            selectInput('test', 'test', 
-                        choices = 1:10), 
+                        choices = c('Choose one' = '', 
+                                    levels(input_skeleton$Season))), 
+            radioButtons('bacteria', 'Infectious Agent', 
+                         selected =  character(0), 
+                         choiceNames = c('STEC', 'Salmonella'), 
+                         choiceValues = 1:2), 
+            selectInput('Agent', 'Salmonella Serotype', 
+                        choices = c(list('Choose one' = ""), 
+                                    Serogroups)), 
             actionButton('Submit', 'Submit')
         ),
 
@@ -53,13 +63,24 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
 
-    observeEvent(input$Submit, output$text <- renderPrint({
-        paste('You have selected', isolate(input$TotalCases), 'and', 
-              isolate(input$Season), 
-              'action is at', input$Submit)
-    }))
-    observeEvent(input$TotalCases, 
-                 updateSelectInput(session, 'test', choices = input$TotalCases))
+    observeEvent(input$Submit, {
+        isolate({
+            Agent <- input$Agent
+            if(Agent %in% NonSpecific) Agent <- 'NonSpecific Sero group'
+            if(Agent %in% PrimaryAnimal) Agent <- "Primary Animal Sero group"
+            if(Agent %in% PrimaryPlant) Agent <- "Primary Plant Sero group"
+        })
+        output$text <- renderPrint({
+        paste('You have selected', Agent, 'and', 
+              isolate(input$Season))
+    })})
+    observeEvent(input$bacteria, {
+        if(input$bacteria == 1) choice <- Serogroups[9]
+        if(input$bacteria == 2) choice <- c(list('Choose one' = ""), 
+                                            Serogroups[-9])
+        updateSelectInput(session, 'Agent', choices = choice)
+    })
+                    
     
 }
 
