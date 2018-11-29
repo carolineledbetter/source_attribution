@@ -423,7 +423,15 @@ ggplot(ForGraph, aes(x = Bins, y = PercentCorrect, group = `Outbreak Source`,
 ggsave('Reports/Figures/CalibrationPlots.png')
 
 
-BrierScore <- lapply(MeltedPredictions2, function(l){
+BrierScore2 <- lapply(MeltedPredictions2, function(l){
+  N <- nrow(l)
+  R <- nlevels(l$Category)
+  l$Category <- as.numeric(l$Category)
+  l$y <- l$Actual == l$Category
+  l$inner <- (l$y - l$PredProb)^2
+  BS <- sum(l$inner)/N
+})
+BrierScore <- lapply(MeltedPredictions3, function(l){
   N <- nrow(l)
   R <- nlevels(l$Category)
   l$Category <- as.numeric(l$Category)
@@ -437,3 +445,4 @@ finalchoice <- models2$kknn
 save(finalchoice, file = 'DataProcessed/knnnmodelobj.rda')
 input_skeleton <- trainX[0, ]
 save(input_skeleton, file = 'DataProcessed/FileSkeleton.rda')
+save(BrierScore, file = 'DataProcessed/Results.rda')

@@ -6,6 +6,7 @@
 library(CIDAtools)
 library(mice)
 library(VIM)
+library(ggplot2)
 
 load('DataRaw/WHIT_20180502_NoWater.RData')
 
@@ -49,6 +50,11 @@ IFSAC <- droplevels(IFSAC)
 Analysis <- 
   IFSAC[IFSAC$IFSACLevel1 %in% c('Land Animals', 'Plant', 'Other', 
                                  'Aquatic Animals'), ]
+n_unident_multi <- nrowP(IFSAC[!IFSAC$IFSACLevel1 %in% 
+                                c('Land Animals', 'Plant', 'Other', 
+                                  'Aquatic Animals'), ])
+(IFSAC_LVL1 <- table(IFSAC$IFSACLevel1))
+(IFSAC_LVL2 <- table(IFSAC$IFSACLevel2))
 Analysis <- droplevels(Analysis)
 table(Analysis$IFSACLevel2)
 
