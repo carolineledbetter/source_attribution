@@ -29,7 +29,7 @@ NORSMain$Salmonella <- Salmonella$GenusName
 NORSMain$SalmSTEC <- NA
 NORSMain$SalmSTEC[NORSMain$STEC] <- 'STEC'
 NORSMain$SalmSTEC[NORSMain$Salmonella] <- 'Salmonella'
-table(NORSMain$SalmSTEC)
+table(NORSMain$SalmSTEC, useNA = 'ifany')
 
 ################################################################################
 # Get Outbreak Season
