@@ -14,7 +14,7 @@
 #
 library(shiny)
 library(caret) 
-library(kknn) # necessary to predict with algorithm we chose
+library(kknn) rs# necessary to predict with algorithm we chose
 library(tidyr) # for gather
 library(ggplot2) # for plotting
 

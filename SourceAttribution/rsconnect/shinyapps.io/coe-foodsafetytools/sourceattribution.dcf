@@ -5,6 +5,6 @@ account: coe-foodsafetytools
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 576308
-bundleId: 1709599
+bundleId: 1729127
 url: https://coe-foodsafetytools.shinyapps.io/sourceattribution/
-when: 1542667286.67535
+when: 1543509741.16949
