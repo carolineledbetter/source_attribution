@@ -1,8 +1,9 @@
 ---
-output: 
-  pdf_document:
-    fig_caption: true
 geometry: margin=1in
+output:
+  word_document: default
+  pdf_document:
+    fig_caption: yes
 ---
 
 ```{r global_options, include=FALSE}
@@ -12,7 +13,8 @@ knitr::opts_knit$set(root.dir = '../')
 
 ```{r setup, include=FALSE}
 load(file = 'DataProcessed/DataClean.RData')
-#load(file = 'DataProcessed/Results.RData')
+load(file = 'DataProcessed/Results.RData')
+load(file = 'DataProcessed/Table1.R')
 library(pander)
 library(CIDAtools)
 ```
@@ -25,18 +27,17 @@ library(CIDAtools)
 
 # Methods  
 ## Data
-Data were collected from NORS 1998-2016 from NORS.
+Data were collected from 1998-2016 from NORS.
 
-## Model Selection
-Foodborne outbreaks were grouped into categories based on there food source as 
+Foodborne outbreaks were grouped into categories based on the food source as 
 identified in NORS. Outbreaks missing IFSAC information, those caused by 
-multiple sources, unnclassifiable outbreaks, outbreaks of undetermined source 
+multiple sources, unclassifiable outbreaks, outbreaks of undetermined source 
 and outbreaks from a source other than animal or plant were removed. Food 
 sources that were rare (less than 100 outbreaks) were removed. 
-We also included non foodbourne outbreaks caused by animal contact. 
+Non foodbourne outbreaks caused by animal contact were included. 
 
 Data were split into a training set (75%) and a testing set (25%). Outbreaks 
-from rare sources were left not removed until after the split so they could be 
+from rare sources were not removed until after the split so they could be 
 left in the testing set. In order to more accurately reflect actual usage, 
 foodbourne outbreaks 
 of other origin were included in the testing set, 
@@ -47,29 +48,113 @@ total cases, the season the outbreak started, the geography of the outbreak
 (STEC or Salmonella Serotype), the percentage of female and male cases, the 
 percentage of people hospitalized, and the percentage of cases in each age group
 (Under 1 year, 1-4 yrs, 5-9 yrs, 10-19 yrs, 20-49 yrs, 50- 74 yrs, 75 yrs and
-older) were used as predictors. We selected four algorithmic methods for 
-predicition based on their ability to predict 
-mutliple class probabilities well - Adaptive bagging, classification and 
-regression trees (CART), weighted k nearest neighbots (knn), and flexible 
+older) were used as predictors. 
+
+Outbreaks which started between Jan and Mar were classified as winter, between 
+Apr and Jun as spring, between Jul and Sept as summer and between Oct and Dec 
+as fall. 
+
+## Model Selection  
+We selected seven algorithmic methods for 
+prediction based on their ability to predict 
+multiple class probabilities well - bagged adaptive boosting classification 
+trees, classification and 
+regression trees (CART), weighted k nearest neighbors (knn), flexible 
 discriminant analysis 
-(FDA). The final model was chosen based on Brier 
+(FDA), weighted subspace random forest, Naive Bayes, and rule-based classifier. 
+A non-informative model that uses no information from predictors was also 
+generated for comparison purposes. 
+The final model was chosen based on Brier 
 Scores (a measure of the difference in the predicted probability and the actual 
-event). In order to more accurately reflect actual usage, foodbourne outbreaks 
-of other origin were included in the testing set, 
-outbreaks with multiple, unclassifiable and no identified food sources were not. 
+event). Outbreaks with other origins were included in the brier score 
+calculations. All analysis was done in `r R.Version()$version.string` with 
+the Caret Package v(`r packageVersion('caret')`. 
 Parameter selection was 
 performed using the Caret package. 
 
+```{r tbl1}
+panderOptions('keep.line.breaks', T)
+panderOptions('table.split.table', Inf)
+pander(tbl1, 'Outbreak Characteristics by Source')
+```
+
 # Results  
 1261 outbreaks missing IFSAC information, 479 outbreaks caused by multiple 
-sources, 51 unnclassifiable outbreaks, 145 outbreaks of undetermined source and 
+sources, 51 unclassifiable outbreaks, 145 outbreaks of undetermined source and 
 12 outbreaks from a source other
 than animal or plant were removed. 79 dairy, 
 19 fish, 9 game, 10 grains-beans, 18 nuts-seeds, 1 oils-sugars, and 35 Aquatic 
-Animals outbreaks were removed.  
-All four models performed well, the Adaptive bagging model had a brier score of 
-0.145, CART of 0.146, weighted k nearest neighbors of 0.125 and FDA of 0.143.
-Calibration curves based on the testing data set are shown inn Fig 1. 
+Animals outbreaks were classified as other.  
+
+Characteristics of outbreaks in the analysis are given in table 1. 
+Egg outbreaks were more likely to table place in the summer, and animal contact
+outbreaks were more common in winter. Meat/Poultry and Produce outbreaks were 
+both uncommon in the winter. Egg outbreaks were most likely to be cause by 
+Salmonella Enteritis and be single county. Egg outbreaks were also more likely
+to have unknown proportions of male vs female and ages. Animal Contact outbreaks
+were more likely to have higher percentages of young children, with a mean
+percentage of 23% for 1 to 4 year olds. Produce outbreaks had higher percentages
+of people over 20 (20-49 yr olds, 50-74 yr olds, and those over 75) than any 
+other outbreak source. Produce outbreaks also tended to be larger. 
+
+The testing data set consisted of 11% egg, 39% meat-poultry, 21% produce, 13%
+animal contact, and 16% other outbreaks (table 2). 
+
+
+```{r table2}
+test <- table(testing$Category)
+train <- table(training$Category)
+tbl2 <- rbind(test, train)
+pander(tbl2, caption = 'Outbreak Sources in testing and training dataset')
+```
+
+
+Model performance varied, two models(Naive Bayes and rule-based classifier) 
+had a Brier Score worse than the non informative model. Weighted k nearest 
+neighbors and weighted subspace random forest performed the best with Brier 
+Scores of 0.125 and FDA of 0.127, respectively. 
+Calibration curves based on the testing data set are shown in Fig 1. Weighted k
+nearest neighbors was chosen for the final model. 
+
+```{r brierscore}
+names(BrierScore) <- 
+pander(unlist(BrierScore), caption = 'Brier Scores')
+```
+
+With knn, a source with a predicted probability from 0 to 20% was correct 5%
+of the time and a source with a predicted probability from 80 to 100% 
+probabilities was correct 56.5% of the time (table 3). 
+
+```{r table3}
+tbl3 <- rbind(do.call(rbind, ForTable), Correct)
+rownames(tbl3)[5] <- 'All'
+tbl3 <- round(tbl3*100, 0)
+colnames(tbl3) <- c("0-20%", 
+                    "20-40%", 
+                    "40-60%", 
+                    "60-80%", 
+                    "80-100%")
+pander(tbl3, caption = 'Percent of Time the Source was Correct by Predicted Probability')
+```
+
+# Discussion
+In order to more accurately reflect performance in real settings, we included
+outbreaks from sources other than the top four in our performance metrics. This 
+causes our calibration curves and brier scores to be slightly biased as 16% of 
+our test cases had no correct answer. 
+Outbreaks with a high predicted probability (80-100%) of meat-poultry tended to 
+be either
+meat-poultry (46% of the time) or other (33% of the time). 
+
+
+Outbreaks with eggs as source were much more likely to have missing information 
+(higher percent sex unknown, higher age unknown, and a higher percentage of 
+missing hospitalization information). As there is a probability that this 
+information will not be unknown to an epidemiologist using the tool and represents
+reporting bias in the training data, this could lead to less accurate results 
+in practice. 
+
+
 
 ![](Figures/CalibrationPlots.png)
 
