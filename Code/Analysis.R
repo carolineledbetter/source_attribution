@@ -10,10 +10,8 @@ library(CIDAtools)
 library(caret)
 library(adabag)
 library(rpart)
-library(C50)
-library(earth)
-library(mda)
 library(plyr)
+library(RWeka)
 library(doParallel)
 cl <- makeCluster(detectCores() -1)
 registerDoParallel(cl)
@@ -248,6 +246,41 @@ models2$FDA <- train(trainX, trainY,
                     tuneLength = 4)
 
 beepr::beep('ready')
+set.seed(849)
+models2$NonInf <- train(trainX, trainY, 
+                      method = "null", 
+                      trControl = cctrl1,
+                      preProc = c("center", "scale", 'knnImpute'), 
+                      tuneLength = 4)
+
+set.seed(849)
+models2$wsrf <- train(trainX, trainY, 
+                      method = "wsrf", 
+                      trControl = cctrl1,
+                      preProc = c("center", "scale", 'knnImpute'), 
+                      tuneLength = 4)
+
+set.seed(849)
+models2$NaiveBayes <- train(trainX, trainY, 
+                            method = "naive_bayes", 
+                            trControl = cctrl1,
+                            preProc = c("center", "scale", 'knnImpute'), 
+                            tuneLength = 4)
+cctrl1 <- trainControl(method = "repeatedcv", number = 10, 
+                       repeats = 3, 
+                       returnResamp = "all",
+                       classProbs = TRUE, 
+                       summaryFunction = multiClassSummary, 
+                       seeds = seeds, 
+                       search = 'random', 
+                       allowParallel = F)
+set.seed(849)
+models2$PART <- train(trainX, trainY, 
+                      method = "PART", 
+                      trControl = cctrl1,
+                      preProc = c("center", "scale", 'knnImpute'), 
+                      tuneLength = 4)
+beepr::beep()
 
 Pred_Probs2 <- lapply(models2, predict, newdata = testing[, -1],  
                      type = 'prob')
@@ -276,45 +309,46 @@ Pred_Probs2 <- lapply(Pred_Probs2, function(l) {
                   labels = levels(orderedtest$Category))
   return(l)})
 
-AdaBag2 <- predict(models2[[1]], testing[-1], type = 'prob')
-AdaBag2$pred <- predict(models2[[1]], testing[-1])
-AdaBag2$obs <- testing[, 1]
-
-rpart2 <- predict(models2[[2]], testing[-1], type = 'prob')
-rpart2$pred <- predict(models2[[2]], testing[-1])
-rpart2$obs <- testing[, 1]
-
-kknn2 <- predict(models2[[3]], testing[-1], type = 'prob')
-kknn2$pred <- predict(models2[[3]], testing[-1])
-kknn2$obs <- testing[, 1]
-
-FDA2 <- predict(models2[[4]], testing[-1], type = 'prob')
-FDA2$pred <- predict(models2[[4]], testing[-1])
-FDA2$obs <- testing[, 1]
-
-multiClassSummary(AdaBag2, lev = levels(AdaBag2$obs))
-multiClassSummary(rpart2, lev = levels(rpart2$obs))
-multiClassSummary(kknn2, lev = levels(kknn2$obs))
-multiClassSummary(FDA2, lev = levels(FDA2$obs))
+# AdaBag2 <- predict(models2[[1]], testing[-1], type = 'prob')
+# AdaBag2$pred <- predict(models2[[1]], testing[-1])
+# AdaBag2$obs <- testing[, 1]
+# 
+# rpart2 <- predict(models2[[2]], testing[-1], type = 'prob')
+# rpart2$pred <- predict(models2[[2]], testing[-1])
+# rpart2$obs <- testing[, 1]
+# 
+# kknn2 <- predict(models2[[3]], testing[-1], type = 'prob')
+# kknn2$pred <- predict(models2[[3]], testing[-1])
+# kknn2$obs <- testing[, 1]
+# 
+# FDA2 <- predict(models2[[4]], testing[-1], type = 'prob')
+# FDA2$pred <- predict(models2[[4]], testing[-1])
+# FDA2$obs <- testing[, 1]
+# 
+# multiClassSummary(AdaBag2, lev = levels(AdaBag2$obs))
+# multiClassSummary(rpart2, lev = levels(rpart2$obs))
+# multiClassSummary(kknn2, lev = levels(kknn2$obs))
+# multiClassSummary(FDA2, lev = levels(FDA2$obs))
 
 stopCluster(cl)
 
-Pred_accuracy2 <- lapply(Pred_Probs2, function(l){
-  l[, 1:nlevels(l$obs)] <- lapply(l[, 1:nlevels(l$obs)], 
-                                  cut, breaks = c(0, .25, .50, .75, 1), 
-                                  include.lowest = T)
-  l <- droplevels(l)
-  return(l)
-})
-lapply(Pred_accuracy2, function(l){
-  p <- list()
-  for(i in 1:nlevels(l$obs)){
-    p[[i]] <- 
-      prop.table(table(l[, i], l$Actual == i), 1)[, 2]
-  }; remove(i)
-  names(p) <- levels(l$obs)
-  return(p)
-})
+# Pred_accuracy2 <- lapply(Pred_Probs2, function(l){
+#   l[, 1:nlevels(l$obs)] <- lapply(l[, 1:nlevels(l$obs)], 
+#                                   cut, breaks = c(0, .25, .50, .75, 1), 
+#                                   include.lowest = T)
+#   l <- droplevels(l)
+#   return(l)
+# })
+# lapply(Pred_accuracy2, function(l){
+#   p <- list()
+#   stop()
+#   for(i in 1:nlevels(l$obs)){
+#     p[[i]] <- 
+#       prop.table(table(l[, i], l$Actual == i), 1)[, 2]
+#   }; remove(i)
+#   names(p) <- levels(l$obs)
+#   return(p)
+# })
 
 
 testing <- Analysis[-inTrain, ]
@@ -345,26 +379,26 @@ Pred_Probs3 <- lapply(Pred_Probs3, function(l) {
                   labels = levels(orderedtest$Category))
   return(l)})
 
-AdaBag3 <- predict(models2[[1]], testing[-1], type = 'prob')
-AdaBag3$pred <- predict(models2[[1]], testing[-1])
-AdaBag3$obs <- testing[, 1]
+# AdaBag3 <- predict(models2[[1]], testing[-1], type = 'prob')
+# AdaBag3$pred <- predict(models2[[1]], testing[-1])
+# AdaBag3$obs <- testing[, 1]
+# 
+# rpart3 <- predict(models2[[2]], testing[-1], type = 'prob')
+# rpart3$pred <- predict(models2[[2]], testing[-1])
+# rpart3$obs <- testing[, 1]
+# 
+# kknn3 <- predict(models2[[3]], testing[-1], type = 'prob')
+# kknn3$pred <- predict(models2[[3]], testing[-1])
+# kknn3$obs <- testing[, 1]
+# 
+# FDA3 <- predict(models2[[4]], testing[-1], type = 'prob')
+# FDA3$pred <- predict(models2[[4]], testing[-1])
+# FDA3$obs <- testing[, 1]
 
-rpart3 <- predict(models2[[2]], testing[-1], type = 'prob')
-rpart3$pred <- predict(models2[[2]], testing[-1])
-rpart3$obs <- testing[, 1]
-
-kknn3 <- predict(models2[[3]], testing[-1], type = 'prob')
-kknn3$pred <- predict(models2[[3]], testing[-1])
-kknn3$obs <- testing[, 1]
-
-FDA3 <- predict(models2[[4]], testing[-1], type = 'prob')
-FDA3$pred <- predict(models2[[4]], testing[-1])
-FDA3$obs <- testing[, 1]
-
-multiClassSummary(AdaBag3, lev = levels(AdaBag3$obs))
-multiClassSummary(rpart3, lev = levels(rpart3$obs))
-multiClassSummary(kknn3, lev = levels(kknn3$obs))
-multiClassSummary(FDA3, lev = levels(FDA3$obs))
+# multiClassSummary(AdaBag3, lev = levels(AdaBag3$obs))
+# multiClassSummary(rpart3, lev = levels(rpart3$obs))
+# multiClassSummary(kknn3, lev = levels(kknn3$obs))
+# multiClassSummary(FDA3, lev = levels(FDA3$obs))
 
 Pred_accuracy3 <- lapply(Pred_Probs3, function(l){
   l[, 1:4] <- lapply(l[, 1:4], 
@@ -381,7 +415,7 @@ Pred_accuracy3 <- lapply(Pred_Probs3, function(l){
   names(p) <- levels(l$obs)[-5]
   return(p)
 }) -> ForGraph)
-
+ForTable <- ForGraph$kknn
 ForGraph <- mapply(function(l, name){
   l <- as.data.frame(l)
   l$Model <- name
@@ -404,12 +438,17 @@ ForGraph$Bins <- factor(ForGraph$Bins,
 ForGraph$Bins <- as.numeric(as.character(ForGraph$Bins))
 
 ForGraph$Model <- factor(ForGraph$Model, 
-                         levels = c('AdaBag', 'CART', 
-                                    'FDA', 'kknn'), 
-                         labels = c('Adaptive Boosting Classification Trees', 
+                         levels = c('NonInf', 'AdaBag', 'CART', 'kknn', 'FDA', 
+                                    'wsrf', 'NaiveBayes', 'PART'), 
+                         labels = c('Non Informative Model', 
+                                    'Bagged Adaptive Boosting Classification Trees', 
                                     'Classification and Regression Trees (CART)', 
+                                    'Weighted k-Nearest Neighbors', 
                                     'Flexible Discriminant Analysis', 
-                                    'Weighted k-Nearest Neighbors'))
+                                    'Weighted Subspace Random Forest', 
+                                    'Naive Bayes', 
+                                    'Rule-Based Classifier'
+                                    ))
 
 ggplot(ForGraph, aes(x = Bins, y = PercentCorrect, group = `Outbreak Source`, 
                      colour = `Outbreak Source`)) + 
@@ -418,9 +457,12 @@ ggplot(ForGraph, aes(x = Bins, y = PercentCorrect, group = `Outbreak Source`,
   scale_y_continuous(breaks = seq(0.1, 0.9, 0.2)) +
   labs(x = 'Bin Midpoint', 
        y = 'Observed Event Proportion', 
-       title = 'Calibration Plots For All Models') + 
-  geom_abline(slope = 1)  
-ggsave('Reports/Figures/CalibrationPlots.png')
+       title = 'Calibration Plots For All Models', 
+       colour = 'Outbreak Source') + 
+  geom_abline(slope = 1)  + 
+  theme(legend.position = c(0.82, 0.13))
+ggsave('Reports/Figures/CalibrationPlots.png', dpi = 300, width = 10, 
+       height = 8, units = 'in')
 
 
 BrierScore2 <- lapply(MeltedPredictions2, function(l){
@@ -445,4 +487,21 @@ finalchoice <- models2$kknn
 save(finalchoice, file = 'DataProcessed/knnnmodelobj.rda')
 input_skeleton <- trainX[0, ]
 save(input_skeleton, file = 'DataProcessed/FileSkeleton.rda')
-save(BrierScore, file = 'DataProcessed/Results.rda')
+
+library(tidyverse)
+ForGraph %>% filter(Model == 'Weighted k-Nearest Neighbors') %>% 
+  spread(`Outbreak Source`, PercentCorrect) %>% select(-Model) %>%
+  rename(Midpoint = Bins) -> CalibrationTable
+CalibrationTable[, 2:5] <- round(CalibrationTable[, 2:5] * 100, 0)
+
+Pred_accuracy3$kknn %>% 
+  gather(key = 'PredSource', value = 'Prediction', 1:4) %>% 
+  mutate(Correct = obs == PredSource) -> PredTbl
+prop.table(table(PredTbl$Prediction, PredTbl$Correct), 1)
+Correct <- prop.table(table(PredTbl$Prediction, PredTbl$Correct), 1)[c(5, 1:4), 
+                                                                     2]
+Pred_accuracy3$kknn %>% filter(MeatPoultry == "(0.8,1]") -> highMP
+prop.table(table(highMP$obs))
+Pred_accuracy3$kknn %>% filter(obs == 'Other')
+save(BrierScore, testing, training, ForTable, Correct, 
+     file = 'DataProcessed/Results.RData')
