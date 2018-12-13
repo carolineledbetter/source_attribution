@@ -14,7 +14,7 @@
 #
 library(shiny)
 library(caret) 
-library(kknn) rs# necessary to predict with algorithm we chose
+library(kknn) # necessary to predict with algorithm we chose
 library(tidyr) # for gather
 library(ggplot2) # for plotting
 
@@ -25,10 +25,10 @@ load(file = 'knnnmodelobj.rda')
 load(file = 'FileSkeleton.rda')
 
 # classify rare serotypes according to primary source
-NonSpecific <- c('Agona', 'Anatum','Berta', 'Mbandaka', 'Muenchen', 'Saintpaul', 
+NonSpecific <- c('Agona', 'Anatum','Berta', 'Mbandaka', 'Muenchen', 
                  'Stanley', 'Thompson')
 PrimaryAnimal <- c('Derby', 'Group B', 'Hadar', 'Infantis', 'Johannesburg', 
-                   'Montevideo', 'Oranienburg', 'Reading', 'Sandiego', 
+                   'Oranienburg', 'Reading', 'Sandiego', 
                    'Typhimurium var Cope', 'Uganda')
 PrimaryPlant <- c('Cubana', 'Poona', 'Senftenberg', 'Virchow')
 
@@ -286,7 +286,7 @@ server <- function(input, output, session) {
                                                    y <- x/Inputs$TotalCases*100
                                                    return(y)
                                                })
-                Inputs$HospPercent2 <- Inputs$Hosp/Inputs$TotalCases*100
+                Inputs$HospPercent2 <- Inputs$Hosp/Inputs$TotalCases
                 
                 # keep only predictors in the model
                 Inputs <- subset(Inputs,
