@@ -484,9 +484,9 @@ BrierScore <- lapply(MeltedPredictions3, function(l){
 
 save.image('DataProcessed/AnalysisWorkspace.Rdata')
 finalchoice <- models2$kknn
-save(finalchoice, file = 'DataProcessed/knnnmodelobj.rda')
+save(finalchoice, file = 'SourceAttribution/knnnmodelobj.rda')
 input_skeleton <- trainX[0, ]
-save(input_skeleton, file = 'DataProcessed/FileSkeleton.rda')
+save(input_skeleton, file = 'SourceAttribution/FileSkeleton.rda')
 
 library(tidyverse)
 ForGraph %>% filter(Model == 'Weighted k-Nearest Neighbors') %>% 
