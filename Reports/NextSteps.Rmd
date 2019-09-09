@@ -1,0 +1,87 @@
+---
+geometry: margin=1in
+output:
+  html_document:
+    df_print: paged
+  pdf_document:
+    fig_caption: yes
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+knitr::opts_knit$set(root.dir = '../')
+```
+
+**Project:**`r CIDAtools::ProjectName()`
+**PI:**`r CIDAtools::ProjectPI()`  
+**Prepared By:**Caroline Ledbetter    
+**Date:** `r paste(format(Sys.Date(), '%m/%d/%Y'))`  
+
+```{r setup, include=FALSE}
+load(file = 'DataProcessed/cleaned_model.RData')
+load(file = 'DataProcessed/Results.RData')
+library(tidyverse)
+library(kableExtra)
+```
+
+# Major Changes
+* Age Unknown and Sex Unknown have been removed
+* Percent Male has been removed as a predictor because it is now perfectly 
+collinear with female. 
+* Missing sex and age has been imputed
+* Uncommon serotypes have been grouped with regression
+* Season has been replaced with month
+* Additional data cleaning to pull missing serotypes from text fields
+* If more than one serotype was present priority is first given to confirmed 
+over suspected then to the serotype with the most number of cases - multiple 
+serotypes is no longer an option. 
+
+
+
+```{r missing}
+analysis %>% filter_all(any_vars(is.na(.))) %>% 
+  count(year, name = 'missing_n') -> tmp
+analysis %>% count(year) %>% full_join(tmp) %>% 
+  mutate(pct = missing_n/n*100) %>% 
+  select(Year = year, N = n, `Pct Missing Any` = pct) -> tmp
+
+analysis %>% 
+  group_by(year) %>% 
+  summarise_all(~ sum(is.na(.))/n()*100) %>% 
+  select(Year = year, Sex = percent_male, Age = percent_age_under1, 
+         Hospitalized = hosp_percent, Geography = geography, 
+         Serotype = serotype) %>% 
+  full_join(x = tmp, y = .) %>% 
+  kable(caption = "Missing Data", digits = 0) %>% 
+  add_header_above(c(' ' = 3, 'Percent Missing each Variable' = 5)) %>% 
+  kable_styling() 
+```
+
+
+**Other, Meat-Poultry Other and Produce Other Excluded**  
+
+
+```{r, fig.width= 9}
+no_other$plots
+```
+
+```{r }
+no_other$brier_scores %>% 
+  kable() %>% 
+  kable_styling()
+
+```
+
+**Other and Dairy Excluded**  
+
+
+```{r, fig.width= 9}
+collapsed$plots
+```
+
+```{r }
+collapsed$brier_scores %>% 
+  kable() %>% 
+  kable_styling()
+
+```

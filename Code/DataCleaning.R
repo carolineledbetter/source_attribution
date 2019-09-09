@@ -19,6 +19,7 @@ NORSMain %>% as_tibble() %>%
                     exclude = 'QNA', 
                     labels = c('Winter', 'Spring', 'Summer', 'Fall')), 
     month = month(DateFirstIll), 
+    year  = year(DateFirstIll), 
     geography = case_when(
       MultiStateExposure  == 1 ~ 'multi_state', 
       MultiCountyExposure == 1 ~ 'multi_county', 
@@ -132,7 +133,7 @@ analysis <-
 analysis <- 
   NORSMain %>% select(cdcid, starts_with("percent"), 
                       total_cases, month, hosp_percent, geography, 
-                      primary_mode) %>% 
+                      primary_mode, year) %>% 
   left_join(agent) %>% 
   right_join(x = analysis, y = .) %>% 
   mutate(attr_source = case_when(
@@ -184,6 +185,15 @@ analysis <-
     !is.na(serogroup) ~ serogroup, 
     TRUE ~ serotype)) %>% 
   select(-serogroup, -n)
+
+analysis %>% filter_all(any_vars(is.na(.))) %>% 
+  count(year, name = 'missing_n') -> tmp
+analysis %>% count(year) %>% full_join(tmp) %>% 
+  mutate(pct = missing_n/n)
+
+analysis %>% 
+  group_by(year) %>% 
+  summarise_all(~ sum(is.na(.))/n()) -> missing_table
 
 save(analysis, file = 'DataProcessed/cleaned_model.RData')
 

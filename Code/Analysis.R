@@ -66,7 +66,19 @@ run_predictions <- function(data){
       set_mode('classification') %>% 
       set_engine('xgboost') %>% 
       fit(attr_source ~ ., juice(recipe))
+    
+    mars <- earth(attr_source ~ ., juice(recipe))
+    
   })
+  
+  
+  mars_results <- 
+    predict(mars, anal_testing, type = 'response') %>%
+    as_tibble() %>% 
+    rename(`Animal Contact` = AnimalContact) %>% 
+    rename_all(~str_c('.pred_', .)) %>% 
+    mutate(model = 'mars') %>% 
+    bind_cols(anal_testing)
   
   generate_result <- function(pred_model){
     predict(pred_model, 
@@ -92,6 +104,7 @@ run_predictions <- function(data){
   }
   
   map_dfr(models, generate_result, .id = 'model') %>% 
+    bind_rows(mars_results) %>% 
     generate_result_table() %>% 
     mutate(bin_midpoint = cut(predicted_value, 
                               breaks = seq(0, 1, 0.2), 
@@ -101,7 +114,7 @@ run_predictions <- function(data){
     group_by(model, predicted_cat, bin_midpoint) %>% 
     count(y) %>% 
     mutate(pct = n/sum(n)) %>% 
-    filter(y == 1) %>% 
+    filter(y == 1 & model != 'null') %>% 
     ggplot(aes(x = bin_midpoint, 
                y = pct, 
                colour = predicted_cat)) +
@@ -119,10 +132,12 @@ run_predictions <- function(data){
   
   map_dfr(models, generate_result, 
           .id = 'model') %>% 
+    bind_rows(mars_results) %>% 
     generate_brier_score() -> brier_scores
   
   map_dfr(models, generate_result, 
           .id = 'model') %>% 
+    bind_rows(mars_results) %>% 
     generate_result_table() -> predictions
   
   return(list(plots = plots, brier_scores = brier_scores, 
@@ -131,11 +146,13 @@ run_predictions <- function(data){
 }
 
 analysis %>% 
+  select(-year) %>% 
   filter(!str_detect(attr_source, 'Other')) %>% 
   run_predictions() -> no_other
-plot(no_other$plots)
+no_other$plots
 
 analysis %>% 
+  select(-year) %>% 
   mutate(   
     attr_source = fct_collapse(attr_source, 
                                `Meat-Poultry` = c('Meat', 
@@ -152,6 +169,6 @@ analysis %>%
 
 collapsed$plots
 
-analysis %>% filter_all(any_vars(is.na(.))) 
 
+save(collapsed, no_other, file = 'DataProcessed/Results.RData')
 
