@@ -1,211 +1,189 @@
-###########################################
+### Project Info #######################################
 # Project: P1330White
 # Author: Caroline Ledbetter
 # Date: 07/30/2018
-# #########################################
-library(CIDAtools)
-library(mice)
-library(VIM)
-library(ggplot2)
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+library(tidyverse)
+library(lubridate)
 
 load('DataRaw/WHIT_20180502_NoWater.RData')
 
-################################################################################
-# Get length of outbreak
-NORSMain$OutbreakLength <- difftime(NORSMain$LastExposure, 
-                                    NORSMain$InitialExposure, 
-                                    units = 'days')
-sum(is.na(NORSMain$OutbreakLength))
+NORSMain %>% as_tibble() %>%  
+  mutate(
+    outbreak_length = (LastExposure - InitialExposure)/ddays(), 
+    season = quarters(DateFirstIll), 
+    season = factor(season, 
+                    levels = c('Q1', 'Q2', 'Q3', 'Q4'), 
+                    exclude = 'QNA', 
+                    labels = c('Winter', 'Spring', 'Summer', 'Fall')), 
+    month = month(DateFirstIll), 
+    geography = case_when(
+      MultiStateExposure  == 1 ~ 'multi_state', 
+      MultiCountyExposure == 1 ~ 'multi_county', 
+      MultiCountyExposure == 0 ~ 'single_county'
+    ), 
+    hosp_percent = HospitalNum/HospitalInfo, 
+    death_percent = DeathsNum/DeathsInfo, 
+    
+  ) %>% 
+  select(-matches('^Percent.+Unknown$')) %>% 
+  rowwise() %>% 
+  mutate(PercentSex = sum(PercentMale, PercentFemale, na.rm = T),
+         PercentMale = PercentMale/PercentSex*100, 
+         PercentFemale = PercentFemale/PercentSex*100, 
+         PercentAge = sum(PercentAgeUnder1, 
+                          PercentAge1to4, 
+                          PercentAge5to9, 
+                          PercentAge10to19,  
+                          PercentAge20to49,  
+                          PercentAge50to74,  
+                          PercentAge75plus, na.rm = T)
+  ) %>% 
+  ungroup() %>% 
+  mutate_at(vars(matches('Age[U1-9]+')), ~ ./PercentAge*100) %>% 
+  mutate_at(vars(matches('^Percent(Fe)*[Mm]ale$')), 
+            ~ if_else(PercentSex == 0, 
+                      ., 
+                      replace_na(., 0L))) %>% 
+  mutate_at(vars(matches('^PercentAge[U1-9]+')), 
+            ~ if_else(PercentAge == 0, 
+                      ., 
+                      replace_na(., 0L))) %>% 
+  select(-PercentAge, -PercentSex) %>% 
+  janitor::clean_names() -> NORSMain
+  
+    
+# Outbreak agent (Salmonella or STEC) -------------------------------------
+GenEtiology <- 
+  GenEtiology %>% 
+  mutate(SerotypeName = replace_na(SerotypeName, 'unknown'), 
+         SerotypeName = case_when(
+           SerotypeName != 'unknown' ~ SerotypeName, 
+           str_detect(OtherCharacteristics, '4[,\\[ ]*5[,\\] ]*12[,\\ :]*') ~ 
+             "I 4,[5],12:i:-", 
+           str_detect(OtherCharacteristics, 'Oranienburg') ~ "Oranienburg", 
+           str_detect(OtherCharacteristics, "	Javiana") ~ "	Javiana", 
+           str_detect(OtherCharacteristics, "Bofflens") ~ "Bofflens", 
+           str_detect(OtherCharacteristics, "Bovismorbificans") ~ 
+             "Bovismorbificans", 
+           str_detect(OtherCharacteristics, "Braenderup") ~ "Braenderup", 
+           str_detect(OtherCharacteristics, "Mbandaka") ~ "Mbandaka", 
+           str_detect(OtherCharacteristics, "Stanley") ~ "Stanley", 
+           str_detect(OtherCharacteristics, "Uganda") ~ "Uganda", 
+           str_detect(OtherCharacteristics, "Montevideo") ~ "Montevideo", 
+           str_detect(OtherCharacteristics, "typhimurium") ~ "Typhimurium", 
+           str_detect(OtherCharacteristics, 'Berta') ~ "Berta", 
+           str_detect(OtherCharacteristics, 'BERTA') ~ 'Berta', 
+           str_detect(OtherCharacteristics, "B\\b") ~ "Group B", 
+           str_detect(OtherCharacteristics, "C1") ~ "Group C1", 
+           str_detect(OtherCharacteristics, "C2") ~ "Group C2", 
+           str_detect(OtherCharacteristics, "D1") ~ "Group D1", 
+           str_detect(OtherCharacteristics, "E1") ~ "Group E1" 
+         ) 
+  ) 
 
+GenEtiology %>% 
+  filter(GenusName %in% c('Escherichia', 'Salmonella')) %>% 
+  arrange(Confirmed, desc(NumberLabConfirmed)) %>% 
+  mutate(genus = GenusName, 
+         serotype = if_else(GenusName == 'Escherichia', 
+                            'STEC',
+                            SerotypeName)) %>% 
+  select(cdcid = CDCID, genus, serotype) %>% 
+  distinct(cdcid, .keep_all = TRUE) -> agent
 
-################################################################################
-# Get outbreak agent (Salmonella or STEC)
-Ecoli <- aggregate(GenusName ~ CDCID, data = GenEtiology, 
-                   function(x) any(x == 'Escherichia'))
-Salmonella <- aggregate(GenusName ~ CDCID, data = GenEtiology, 
-                        function(x) any(x == 'Salmonella'))
-NORSMain$STEC <- Ecoli$GenusName
-NORSMain$Salmonella <- Salmonella$GenusName
-NORSMain$SalmSTEC <- NA
-NORSMain$SalmSTEC[NORSMain$STEC] <- 'STEC'
-NORSMain$SalmSTEC[NORSMain$Salmonella] <- 'Salmonella'
-table(NORSMain$SalmSTEC, useNA = 'ifany')
+agent %>% count(genus, serotype) %>% view
 
-################################################################################
-# Get Outbreak Season
-NORSMain$Season <- quarters(NORSMain$DateFirstIll) 
-NORSMain$Season <- factor(NORSMain$Season, 
-                          levels = c('Q1', 'Q2', 'Q3', 'Q4'), 
-                          exclude = 'QNA', 
-                          labels = c('Winter', 'Spring', 'Summer', 'Fall'))
+# Serotype for Salmonella outbreaks --------------------------------------------
 
-table(NORSMain$Season, useNA = 'ifany')
-################################################################################
-# Get food source
+# Food source ---------------------------------------------------------------
 IFSAC <- `__IFSACCommodityData`
-IFSAC[, 8:14] <- lapply(IFSAC[, 8:14], factor)
-IFSAC <- droplevels(IFSAC)
+
 
 # Only include outbreaks with an identifiable single source
-Analysis <- 
-  IFSAC[IFSAC$IFSACLevel1 %in% c('Land Animals', 'Plant', 'Other', 
-                                 'Aquatic Animals'), ]
-n_unident_multi <- nrowP(IFSAC[!IFSAC$IFSACLevel1 %in% 
-                                c('Land Animals', 'Plant', 'Other', 
-                                  'Aquatic Animals'), ])
-(IFSAC_LVL1 <- table(IFSAC$IFSACLevel1))
-(IFSAC_LVL2 <- table(IFSAC$IFSACLevel2))
-Analysis <- droplevels(Analysis)
-table(Analysis$IFSACLevel2)
+IFSAC %>% count(IFSACLevel1, IFSACLevel2, IFSACLevel3) %>% view
 
-Analysis$Category <- factor(NA, 
-                            levels = c('Eggs', 
-                                       'Meat', 'Poultry', 'Produce',
-                                       'AnimalContact', 'Other'))
-Analysis$Category[!Analysis$IFSACLevel2 %in% 
-                    c('Meat-Poultry') ] <- 
-  Analysis$IFSACLevel2[!Analysis$IFSACLevel2 %in% 
-                         c('Meat-Poultry') ]
-
-Analysis$Category[Analysis$IFSACLevel2 %in% 
-                    c('Meat-Poultry') ] <- 
-  Analysis$IFSACLevel3[Analysis$IFSACLevel2 %in% 
-                         c('Meat-Poultry') ]
+analysis <- 
+  IFSAC %>% 
+  filter(IFSACLevel1 %in% c("Aquatic Animals", 
+                            "Land Animals", 
+                            "Other", 
+                            "Plant")
+         ) %>% 
+  mutate(food_source = case_when(
+    IFSACLevel2 == "Dairy" ~ "Dairy", 
+    IFSACLevel2 == "Eggs" ~ "Eggs", 
+    IFSACLevel3 == "Meat" ~ "Meat", 
+    IFSACLevel3 == "Poultry" ~ "Poultry", 
+    IFSACLevel3 == "Fruits" ~ "Fruits", 
+    IFSACLevel3 == "Vegetables" ~ "Vegetables", 
+    IFSACLevel2 == "Meat-Poultry" ~ "Meat-Poultry Other", 
+    IFSACLevel2 == "Produce" ~ "Produce Other", 
+    TRUE ~ "Other"
+  )) %>% 
+    select(cdcid = CDCID, food_source)
 
 
-Analysis$Category[is.na(Analysis$Category)] <- 'Other'
-table(Analysis$Category, useNA = 'ifany')
-table(Analysis$IFSACLevel1, Analysis$Category, useNA = 'ifany')
-table(Analysis$IFSACLevel2, Analysis$Category, useNA = 'ifany')
-table(Analysis$IFSACLevel3, Analysis$Category, useNA = 'ifany')
-
-################################################################################
-# Include only outbreaks with identified food source or animal contact
-
-SelectNORS <- subset(NORSMain, CDCID %in% Analysis$CDCID | 
-                       PrimaryMode == 'Animal Contact')
-Analysis <- merge(Analysis, SelectNORS, by = 'CDCID', all = T)
-Analysis$Category[Analysis$PrimaryMode == 'Animal Contact'] <- "AnimalContact"
-Analysis$OutbreakLength <- as.numeric(Analysis$OutbreakLength)
-
-Logical <- grep('^Multi.+Exposure|^Multi.+Residence', names(Analysis))
-names(Analysis)[Logical]
-Analysis[, Logical] <- lapply(Analysis[, Logical], as.logical)
-Analysis$HospPercent <- Analysis$HospitalNum/Analysis$HospitalInfo
-Analysis$HospPercent2 <- Analysis$HospitalNum/Analysis$EstimatedPrimary
-Analysis$DeathsPct <- Analysis$DeathsNum/Analysis$EstimatedPrimary
-
-Analysis$PercentMale[is.na(Analysis$PercentMale)] <- 0
-Analysis$PercentFemale[is.na(Analysis$PercentFemale)] <- 0
-Analysis$PercentSexUnknown[is.na(Analysis$PercentSexUnknown)] <- 100 - 
-  apply(subset(Analysis, is.na(PercentSexUnknown), select = c(PercentFemale, 
-                                                              PercentMale)), 
-        1, sum)
 
 
-################################################################################
-# Serotype for Salmonella outbreaks
-Analysis$Agent <- Analysis$SalmSTEC
-SalmSero <- subset(GenEtiology, GenusName == 'Salmonella', 
-                   select = c(CDCID, SerotypeName))
-SalmSero <- SalmSero[!duplicated(SalmSero), ]
-sum(duplicated(SalmSero$CDCID))
-# one line per outbreak
-SalmSeroOne <- SalmSero[!duplicated(SalmSero$CDCID), ]
-# set outbreaks with more than one serotype to multiple serotypes
-multiType <- SalmSero$CDCID[duplicated(SalmSero$CDCID)]
-SalmSeroOne$SerotypeName[SalmSeroOne$CDCID %in% multiType] <- 
-  'Multiple Serotypes'
+# save -------------------------------------------------------------------------
+analysis <- 
+  NORSMain %>% select(cdcid, starts_with("percent"), 
+                      total_cases, month, hosp_percent, geography, 
+                      primary_mode) %>% 
+  left_join(agent) %>% 
+  right_join(x = analysis, y = .) %>% 
+  mutate(attr_source = case_when(
+    primary_mode == 'Animal Contact' ~ 'Animal Contact', 
+    TRUE ~ food_source)) %>% 
+  filter(!is.na(attr_source)) %>% 
+  select(-food_source, -primary_mode) 
 
-Analysis <- merge(Analysis, SalmSeroOne, by = 'CDCID', all.x = T)
-Analysis$Agent[Analysis$SalmSTEC == 'Salmonella'] <- 
-  Analysis$SerotypeName[Analysis$SalmSTEC == 'Salmonella']
-table(Analysis$Agent, useNA = 'ifany')
-Analysis$Agent[Analysis$Agent == 'unknown'] <- 'Salm unk sero'
-table(Analysis$Agent, useNA = 'ifany')
-table(Analysis$Agent, Analysis$SalmSTEC, useNA = 'ifany')
-Analysis$Agent[is.na(Analysis$Agent) & Analysis$Salmonella] <- 'Salm unk sero'
-table(Analysis$Agent, Analysis$SalmSTEC, useNA = 'ifany')
+analysis %>% 
+  select(serotype, attr_source) %>% 
+  add_count(serotype) %>% 
+  filter(n > 3  & n < 10) %>%
+  mutate(attr_source = fct_collapse(attr_source, 
+                                  Animal = 
+                                    c("Animal Contact", 
+                                      "Dairy", 
+                                      "Eggs", 
+                                      "Meat", 
+                                      "Poultry", 
+                                      "Meat-Poultry Other"), 
+                                  Plant = 
+                                    c("Fruits", 
+                                      "Vegetables", 
+                                      "Produce Other")
+  )
+  ) %>% 
+  select(-n) -> uncommon_sero 
+fit_serotype <- glm(attr_source ~ serotype, data = uncommon_sero, 
+                    family = 'binomial')
+uncommon_sero <- uncommon_sero %>% 
+  mutate(pred_source = 
+           predict(fit_serotype, 
+                   newdata = uncommon_sero, 
+                   type = 'response'), 
+         serogroup = case_when(
+           pred_source <= 1/3 ~ 'Group1', 
+           pred_source <= 2/3 ~ 'Group2', 
+           TRUE ~ 'Group3'
+         )
+  ) %>% select(serotype, serogroup) %>% 
+  distinct()
 
-Analysis <- droplevels(Analysis)
-Agents <- table(Analysis$Agent)
-(Agents <- dimnames(Agents[Agents > 20])[[1]])
-NonSpecific <- c('Agona', 'Anatum','Berta', 'Mbandaka', 'Muenchen', 
-                 'Stanley', 'Thompson')
-PrimaryAnimal <- c('Derby', 'Group B', 'Hadar', 'Infantis', 'Johannesburg', 
-                   'Oranienburg', 'Reading', 'Sandiego', 
-                   'Typhimurium var Cope', 'Uganda')
-PrimaryPlant <- c('Cubana', 'Poona', 'Senftenberg', 'Virchow')
-# RareAgents <- subset(Analysis, Agent %in% Agents & (IFSACLevel1 %in% 
-#                        c('Land Animals', 'Plant', 'Aquatic Animals') | 
-#                        Category == "AnimalContact"), 
-#                      select = c(IFSACLevel1, Agent))
-# RareAgents$IFSACLevel1 <- factor(RareAgents$IFSACLevel1, 
-#                                  levels = c('Plant', 'Aquatic Animals', 
-#                                             'Land Animals', 'AnimalContact'))
-# RareAgents$IFSACLevel1[is.na(RareAgents$IFSACLevel1)] <- 'AnimalContact'
-# RareAgents <- RareAgents[order(RareAgents$IFSACLevel1), ]
-# ggplot(RareAgents, aes(x = Agent, y = IFSACLevel1)) + geom_count() + 
-#   theme_classic()
+analysis <- 
+  analysis %>% 
+  left_join(uncommon_sero) %>% 
+  add_count(serotype) %>% 
+  mutate(serotype = case_when(
+    n <= 3 ~ 'rare', 
+    !is.na(serogroup) ~ serogroup, 
+    TRUE ~ serotype)) %>% 
+  select(-serogroup, -n)
 
-Analysis$Agent[Analysis$Agent %in% NonSpecific] <- 'NonSpecific Sero group'
-Analysis$Agent[Analysis$Agent %in% PrimaryPlant] <- 'Primary Plant Sero group'
-Analysis$Agent[Analysis$Agent %in% PrimaryAnimal] <- 'Primary Animal Sero group'
-Analysis$Agent <- factor(Analysis$Agent, levels = c(Agents, 'Paratyphi B', 
-                                                    'NonSpecific Sero group', 
-                                                    'Primary Plant Sero group', 
-                                                    'Primary Animal Sero group', 
-                                                    'Rare'))
-Analysis$Agent[is.na(Analysis$Agent)] <- 'Rare'
-table(Analysis$Agent, useNA = 'ifany')
-
-vars <- grep('Percent|Deaths|Hospital', names(Analysis))
-vars <- c(which(names(Analysis) %in% c("CDCID", 'Agent', 
-                                       "Category", 
-                                       "MultiCountyExposure", 
-                                       'MultiStateExposure', 
-                                       'TotalCases', 
-                                       'OutbreakLength', 
-                                       'Season', 'SalmSTEC')), 
-          vars)
-names(Analysis)[vars]
-Analysis <- subset(Analysis, select = vars)
-
-################################################################################
-# set Age variables that are missing to zero if other age variables
-# add up to 99 or greater
-
-# get names of age variables
-AgeVars <- grep('Age[0-9]|U', names(Analysis))
-# get sums of age variables
-Age <- apply(subset(Analysis, select = AgeVars), 1, sum, na.rm = T)
-# are any missing
-AgeMis <- apply(subset(Analysis, select = AgeVars), 1, 
-                function(x) any(is.na(x)))
-
-# set to 0 those that are missing, where the sum is greater than 99
-Analysis[, AgeVars][is.na(Analysis[, AgeVars]) & Age >=99 & AgeMis] <- 0
-Age <- apply(subset(Analysis, select = AgeVars), 1, sum, na.rm = T)
-
-# check
-AgeMis <- apply(subset(Analysis, select = AgeVars), 1, 
-                function(x) any(is.na(x)))
-Age[Age >= 99 & AgeMis]
-# checks
-AgeVars <- grep('Age[0-9]|Under1', names(Analysis))
-Analysis[, AgeVars][is.na(Analysis[, AgeVars])] <- 0
-Analysis$PercentAgeUnknown[is.na(Analysis$PercentAgeUnknown)] <- 
-  100 - apply(subset(Analysis, is.na(PercentAgeUnknown), 
-                     select = AgeVars), 1, sum)
-
-# aggr_plot <- aggr(Analysis, col=c('navyblue','red'), numbers=TRUE, 
-#                   sortVars=TRUE, labels=names(Analysis), cex.axis=.7, 
-#                   gap=3, ylab=c("Histogram of missing data","Pattern"))
-marginplot(Analysis[, c("Category", "PercentAgeUnknown")])
-table(Analysis$Category, is.na(Analysis$PercentAgeUnknown))
-prop.table(table(Analysis$Category, is.na(Analysis$PercentAgeUnknown)), 1)
-
-table(Analysis$Season, useNA = 'ifany')
-
-save(Analysis, file = 'DataProcessed/DataClean.RData')
+save(analysis, file = 'DataProcessed/cleaned_model.RData')
 
