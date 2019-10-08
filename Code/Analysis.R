@@ -28,7 +28,6 @@ run_predictions <- function(data){
       step_scale(all_numeric()) %>% 
       step_string2factor(all_nominal()) %>% 
       step_knnimpute(all_predictors()) %>% 
-      step_downsample(attr_source, ratio = 2.5) %>%
       prep()
     
     juice(recipe) %>% glimpse()
@@ -44,16 +43,16 @@ run_predictions <- function(data){
       set_engine('parsnip') %>% 
       fit(attr_source ~ ., juice(recipe))
     
-    models$kknn <- 
-      nearest_neighbor() %>% 
-      set_mode('classification') %>% 
-      set_engine('kknn') %>% 
+    models$kknn <-
+      nearest_neighbor() %>%
+      set_mode('classification') %>%
+      set_engine('kknn') %>%
       fit(attr_source ~ ., juice(recipe))
-    
-    # models$mars <- mars() %>% 
-    #   set_mode('classification') %>% 
-    #   set_engine('earth') %>% 
-    #   fit(attr_source ~ ., juice(recipe))
+
+    models$mars <- mars() %>%
+      set_mode('classification') %>%
+      set_engine('earth') %>%
+      fit(attr_source ~ ., juice(recipe))
     
     models$c50 <- 
       boost_tree() %>% 
@@ -67,17 +66,23 @@ run_predictions <- function(data){
       set_engine('xgboost') %>% 
       fit(attr_source ~ ., juice(recipe))
     
+    models$spark <- 
+      boost_tree() %>% 
+      set_mode('classification') %>% 
+      set_engine('xgboost') %>% 
+      fit(attr_source ~ ., juice(recipe))
+    
     mars <- earth(attr_source ~ ., juice(recipe))
     
   })
   
   
-  mars_results <- 
+  mars_results <-
     predict(mars, anal_testing, type = 'response') %>%
-    as_tibble() %>% 
-    rename(`Animal Contact` = AnimalContact) %>% 
-    rename_all(~str_c('.pred_', .)) %>% 
-    mutate(model = 'mars') %>% 
+    as_tibble() %>%
+    rename(`Animal Contact` = AnimalContact) %>%
+    rename_all(~str_c('.pred_', .)) %>%
+    mutate(model = 'mars') %>%
     bind_cols(anal_testing)
   
   generate_result <- function(pred_model){
@@ -141,7 +146,8 @@ run_predictions <- function(data){
     generate_result_table() -> predictions
   
   return(list(plots = plots, brier_scores = brier_scores, 
-              predictions = predictions))
+              predictions = predictions, models = models, 
+              recipe = recipe))
   
 }
 
