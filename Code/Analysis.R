@@ -10,20 +10,30 @@ library(tidyverse)
 library(tidymodels)
 library(kknn)
 library(earth)
+library(sp)
 
 run_predictions <- function(data){
   set.seed(1450)
   analysis_split <- data %>% 
-    select(-cdcid, -percent_male, -genus) %>%  
     initial_split(strata = attr_source)
   analysis_split
   
   analysis_split %>% glimpse()
-  
+
   suppressWarnings({
     recipe <- 
       training(analysis_split) %>% 
-      recipe(attr_source ~ .) %>% 
+      recipe(attr_source ~ percent_female + 
+             percent_age_under1 + 
+             percent_age1to4 + 
+             percent_age20to49 + 
+             percent_age5to19 + 
+             percent_age50plus + 
+             total_cases + 
+             month + 
+             geography + 
+             serotype) %>% 
+      step_filter(!str_detect(attr_source, 'Other')) %>% 
       step_center(all_numeric()) %>% 
       step_scale(all_numeric()) %>% 
       step_string2factor(all_nominal()) %>% 
@@ -48,11 +58,6 @@ run_predictions <- function(data){
       set_mode('classification') %>%
       set_engine('kknn') %>%
       fit(attr_source ~ ., juice(recipe))
-
-    models$mars <- mars() %>%
-      set_mode('classification') %>%
-      set_engine('earth') %>%
-      fit(attr_source ~ ., juice(recipe))
     
     models$c50 <- 
       boost_tree() %>% 
@@ -66,11 +71,11 @@ run_predictions <- function(data){
       set_engine('xgboost') %>% 
       fit(attr_source ~ ., juice(recipe))
     
-    models$spark <- 
-      boost_tree() %>% 
-      set_mode('classification') %>% 
-      set_engine('xgboost') %>% 
-      fit(attr_source ~ ., juice(recipe))
+    # models$spark <- 
+    #   boost_tree() %>% 
+    #   set_mode('classification') %>% 
+    #   set_engine('spark') %>% 
+    #   fit(attr_source ~ ., juice(recipe))
     
     mars <- earth(attr_source ~ ., juice(recipe))
     
@@ -80,6 +85,7 @@ run_predictions <- function(data){
   mars_results <-
     predict(mars, anal_testing, type = 'response') %>%
     as_tibble() %>%
+    select(-contains('Other')) %>% 
     rename(`Animal Contact` = AnimalContact) %>%
     rename_all(~str_c('.pred_', .)) %>%
     mutate(model = 'mars') %>%
@@ -94,6 +100,7 @@ run_predictions <- function(data){
   
   generate_result_table <- function(result) {
     result %>% 
+      select(-contains('Other')) %>% 
       pivot_longer(starts_with('.pred_'), 
                    names_to = 'predicted_cat', 
                    values_to = 'predicted_value') %>% 
@@ -145,20 +152,27 @@ run_predictions <- function(data){
     bind_rows(mars_results) %>% 
     generate_result_table() -> predictions
   
+  models$mars <- mars
+  
   return(list(plots = plots, brier_scores = brier_scores, 
               predictions = predictions, models = models, 
               recipe = recipe))
   
 }
 
+set.seed(1454)
 analysis %>% 
   select(-year) %>% 
   filter(!str_detect(attr_source, 'Other')) %>% 
-  run_predictions() -> no_other
+  add_count(attr_source) %>%
+  mutate(weight = 1/(7*n)) %>%
+  sample_n(950, weight = weight) %>% 
+  select(-n, -weight) -> anal_sampled
+
+run_predictions(analysis) -> no_other
 no_other$plots
 
 analysis %>% 
-  select(-year) %>% 
   mutate(   
     attr_source = fct_collapse(attr_source, 
                                `Meat-Poultry` = c('Meat', 
@@ -169,7 +183,7 @@ analysis %>%
                                              'Produce Other')
                                )
   ) %>% 
-  filter(!attr_source %in% c('Dairy', 'Other')) %>%
+  filter(!attr_source %in% c('Dairy')) %>%
     droplevels() %>% 
   run_predictions() -> collapsed
 
@@ -177,4 +191,5 @@ collapsed$plots
 
 
 save(collapsed, no_other, file = 'DataProcessed/Results.RData')
+
 

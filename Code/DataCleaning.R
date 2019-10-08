@@ -4,11 +4,35 @@
 # Date: 07/30/2018
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-
+library(CIDAtools)
 library(tidyverse)
 library(lubridate)
 
 load('DataRaw/WHIT_20180502_NoWater.RData')
+NORSMain %>% glimpse()
+EforsAge %>% glimpse
+
+EforsAge <- 
+  EforsAge %>%
+  select(-AgeUnknown) %>% 
+  mutate(CDCID = as.character(CDCID)) %>% 
+  rename(AgeUnder1 = AgeLessThan1,
+         Age50plus  = AgeGreaterThanEqual50) %>%
+  rename_at(vars(starts_with('Age')), ~ paste0('Percent', .)) 
+
+NORSMain <- 
+  NORSMain %>% as_tibble() %>% 
+  mutate(CDCID = as.character(CDCID), 
+         PercentAge5to19 = sum_ignore_NA(PercentAge5to9, 
+                                         PercentAge10to19), 
+         PercentAge50plus = sum_ignore_NA(PercentAge50to74, 
+                                          PercentAge75plus)) %>% 
+  select(-PercentAge5to9, -PercentAge10to19, -PercentAge50to74, 
+         -PercentAge75plus, -EforsId, 
+         -matches('^Percent.+Unknown$')) %>% 
+  union_all(., EforsAge) %>% 
+  group_by(CDCID) %>%
+  summarise_all(~{coalesce(.x[1], .x[2])})
 
 NORSMain %>% as_tibble() %>%  
   mutate(
@@ -27,22 +51,15 @@ NORSMain %>% as_tibble() %>%
     ), 
     hosp_percent = HospitalNum/HospitalInfo, 
     death_percent = DeathsNum/DeathsInfo, 
-    
-  ) %>% 
-  select(-matches('^Percent.+Unknown$')) %>% 
-  rowwise() %>% 
-  mutate(PercentSex = sum(PercentMale, PercentFemale, na.rm = T),
+    PercentSex = sum_ignore_NA(PercentMale, PercentFemale),
          PercentMale = PercentMale/PercentSex*100, 
          PercentFemale = PercentFemale/PercentSex*100, 
-         PercentAge = sum(PercentAgeUnder1, 
+         PercentAge = sum_ignore_NA(PercentAgeUnder1, 
                           PercentAge1to4, 
-                          PercentAge5to9, 
-                          PercentAge10to19,  
+                          PercentAge5to19, 
                           PercentAge20to49,  
-                          PercentAge50to74,  
-                          PercentAge75plus, na.rm = T)
+                          PercentAge50plus)
   ) %>% 
-  ungroup() %>% 
   mutate_at(vars(matches('Age[U1-9]+')), ~ ./PercentAge*100) %>% 
   mutate_at(vars(matches('^Percent(Fe)*[Mm]ale$')), 
             ~ if_else(PercentSex == 0, 
@@ -55,6 +72,7 @@ NORSMain %>% as_tibble() %>%
   select(-PercentAge, -PercentSex) %>% 
   janitor::clean_names() -> NORSMain
   
+
     
 # Outbreak agent (Salmonella or STEC) -------------------------------------
 GenEtiology <- 
@@ -88,7 +106,8 @@ GenEtiology <-
 GenEtiology %>% 
   filter(GenusName %in% c('Escherichia', 'Salmonella')) %>% 
   arrange(Confirmed, desc(NumberLabConfirmed)) %>% 
-  mutate(genus = GenusName, 
+  mutate(CDCID = as.character(CDCID), 
+         genus = GenusName, 
          serotype = if_else(GenusName == 'Escherichia', 
                             'STEC',
                             SerotypeName)) %>% 
@@ -113,18 +132,19 @@ analysis <-
                             "Other", 
                             "Plant")
          ) %>% 
-  mutate(food_source = case_when(
-    IFSACLevel2 == "Dairy" ~ "Dairy", 
-    IFSACLevel2 == "Eggs" ~ "Eggs", 
-    IFSACLevel3 == "Meat" ~ "Meat", 
-    IFSACLevel3 == "Poultry" ~ "Poultry", 
-    IFSACLevel3 == "Fruits" ~ "Fruits", 
-    IFSACLevel3 == "Vegetables" ~ "Vegetables", 
-    IFSACLevel2 == "Meat-Poultry" ~ "Meat-Poultry Other", 
-    IFSACLevel2 == "Produce" ~ "Produce Other", 
-    TRUE ~ "Other"
-  )) %>% 
-    select(cdcid = CDCID, food_source)
+  mutate(CDCID = as.character(CDCID), 
+         food_source = case_when(
+           IFSACLevel2 == "Dairy" ~ "Dairy", 
+           IFSACLevel2 == "Eggs" ~ "Eggs", 
+           IFSACLevel3 == "Meat" ~ "Meat", 
+           IFSACLevel3 == "Poultry" ~ "Poultry", 
+           IFSACLevel3 == "Fruits" ~ "Fruits", 
+           IFSACLevel3 == "Vegetables" ~ "Vegetables", 
+           IFSACLevel2 == "Meat-Poultry" ~ "Meat-Poultry Other", 
+           IFSACLevel2 == "Produce" ~ "Produce Other", 
+           TRUE ~ "Other"
+         )) %>% 
+  select(cdcid = CDCID, food_source)
 
 
 
@@ -175,6 +195,10 @@ uncommon_sero <- uncommon_sero %>%
          )
   ) %>% select(serotype, serogroup) %>% 
   distinct()
+
+analysis %>% count(serotype) %>% filter(n <= 3) -> rare
+
+save(rare, uncommon_sero, file = "DataProcessed/SeroGroupings.rda")
 
 analysis <- 
   analysis %>% 
