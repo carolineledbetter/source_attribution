@@ -176,21 +176,67 @@ save(validate, file = 'DataProcessed/validation_data.RData')
 
 load(file = 'DataProcessed/Results.RData')
 
-recipe <- 
-  training(analysis_split) %>% 
-  recipe(attr_source ~ percent_female + 
-           percent_age_under1 + 
-           percent_age1to4 + 
-           percent_age20to49 + 
-           percent_age5to19 + 
-           percent_age50plus + 
-           total_cases + 
-           month + 
-           geography + 
-           serotype) %>% 
-  step_filter(!str_detect(attr_source, 'Other')) %>% 
-  step_center(all_numeric()) %>% 
-  step_scale(all_numeric()) %>% 
-  step_string2factor(all_nominal()) %>% 
-  step_knnimpute(all_predictors()) %>% 
-  prep()
+recipe <- no_other$recipe
+
+baked <- recipe %>% bake(validate)
+
+generate_result <- function(pred_model, data){
+  predict(pred_model, 
+          data, 
+          type = 'prob') %>% 
+    bind_cols(data)
+}
+
+generate_result_table <- function(result) {
+  result %>% 
+    select(-contains('Other')) %>% 
+    mutate(outbreak_id = row_number()) %>% 
+    pivot_longer(starts_with('.pred_'), 
+                 names_to = 'predicted_cat', 
+                 values_to = 'predicted_value') %>% 
+    mutate(predicted_cat = str_remove(predicted_cat, '\\.pred_'), 
+           y = if_else(predicted_cat == attr_source, 1, 0)) 
+}
+
+generate_brier_score <- function(result){
+  generate_result_table(result) %>% 
+    mutate(f_ti_minus_o_ti_sq = (predicted_value - y)^2) %>% 
+    summarise(brier_score = 1/n()*sum(f_ti_minus_o_ti_sq))
+}
+
+generate_result(no_other$models$xgboost, baked) -> result
+generate_brier_score(result)
+
+generate_result(no_other$models$null, baked) -> null_result
+generate_brier_score(null_result)
+
+# mars_results <-
+#   predict(no_other$models$mars, baked, type = 'response') %>%
+#   as_tibble() %>%
+#   select(-contains('Other')) %>% 
+#   rename(`Animal Contact` = AnimalContact) %>%
+#   rename_all(~str_c('.pred_', .)) %>%
+#   bind_cols(baked)
+# generate_brier_score(mars_results)
+
+
+generate_result_table(result) -> validation_results
+
+
+validate_no_missing <- validate %>% 
+  filter_at(vars(percent_female, 
+                 percent_age_under1, 
+                 percent_age1to4, 
+                 percent_age20to49, 
+                 percent_age5to19, 
+                 percent_age50plus, 
+                 total_cases, 
+                 month, 
+                 geography, 
+                 serotype), all_vars(!is.na(.)))
+baked_without_missing <- bake(recipe, validate_no_missing)
+generate_result(no_other$models$xgboost, baked_without_missing) -> non_missing_result
+generate_brier_score(non_missing_result)
+
+generate_result(no_other$models$null, baked_without_missing) -> non_missing_null
+generate_brier_score(non_missing_null)

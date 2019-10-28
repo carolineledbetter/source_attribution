@@ -37,7 +37,7 @@ run_predictions <- function(data){
       step_center(all_numeric()) %>% 
       step_scale(all_numeric()) %>% 
       step_string2factor(all_nominal()) %>% 
-      step_knnimpute(all_predictors()) %>% 
+      step_knnimpute(all_predictors(), skip = TRUE) %>% 
       prep()
     
     juice(recipe) %>% glimpse()
@@ -53,11 +53,11 @@ run_predictions <- function(data){
       set_engine('parsnip') %>% 
       fit(attr_source ~ ., juice(recipe))
     
-    models$kknn <-
-      nearest_neighbor() %>%
-      set_mode('classification') %>%
-      set_engine('kknn') %>%
-      fit(attr_source ~ ., juice(recipe))
+    # models$kknn <-
+    #   nearest_neighbor() %>%
+    #   set_mode('classification') %>%
+    #   set_engine('kknn') %>%
+    #   fit(attr_source ~ ., juice(recipe))
     
     models$c50 <- 
       boost_tree() %>% 
@@ -77,19 +77,19 @@ run_predictions <- function(data){
     #   set_engine('spark') %>% 
     #   fit(attr_source ~ ., juice(recipe))
     
-    mars <- earth(attr_source ~ ., juice(recipe))
+   #  mars <- earth(attr_source ~ ., juice(recipe))
     
   })
   
   
-  mars_results <-
-    predict(mars, anal_testing, type = 'response') %>%
-    as_tibble() %>%
-    select(-contains('Other')) %>% 
-    rename(`Animal Contact` = AnimalContact) %>%
-    rename_all(~str_c('.pred_', .)) %>%
-    mutate(model = 'mars') %>%
-    bind_cols(anal_testing)
+  # mars_results <-
+  #   predict(mars, anal_testing, type = 'response') %>%
+  #   as_tibble() %>%
+  #   select(-contains('Other')) %>% 
+  #   rename(`Animal Contact` = AnimalContact) %>%
+  #   rename_all(~str_c('.pred_', .)) %>%
+  #   mutate(model = 'mars') %>%
+  #   bind_cols(anal_testing)
   
   generate_result <- function(pred_model){
     predict(pred_model, 
@@ -116,7 +116,7 @@ run_predictions <- function(data){
   }
   
   map_dfr(models, generate_result, .id = 'model') %>% 
-    bind_rows(mars_results) %>% 
+    # bind_rows(mars_results) %>% 
     generate_result_table() %>% 
     mutate(bin_midpoint = cut(predicted_value, 
                               breaks = seq(0, 1, 0.2), 
@@ -144,15 +144,15 @@ run_predictions <- function(data){
   
   map_dfr(models, generate_result, 
           .id = 'model') %>% 
-    bind_rows(mars_results) %>% 
+    # bind_rows(mars_results) %>% 
     generate_brier_score() -> brier_scores
   
   map_dfr(models, generate_result, 
           .id = 'model') %>% 
-    bind_rows(mars_results) %>% 
+    # bind_rows(mars_results) %>% 
     generate_result_table() -> predictions
   
-  models$mars <- mars
+  # models$mars <- mars
   
   return(list(plots = plots, brier_scores = brier_scores, 
               predictions = predictions, models = models, 
