@@ -3,5 +3,6 @@
 **/*.ldb
 **/DataProcessed/*
 !**/ReadMe.md
-!**/Analysis*
-!**/DataClean.RData
+**/DataRaw/*
+*.RData
+*.rda
