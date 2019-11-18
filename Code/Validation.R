@@ -235,8 +235,10 @@ validate_no_missing <- validate %>%
                  geography, 
                  serotype), all_vars(!is.na(.)))
 baked_without_missing <- bake(recipe, validate_no_missing)
-generate_result(no_other$models$xgboost, baked_without_missing) -> non_missing_result
+generate_result(no_other$models$xgboost, 
+                baked_without_missing) -> non_missing_result
 generate_brier_score(non_missing_result)
 
-generate_result(no_other$models$null, baked_without_missing) -> non_missing_null
+generate_result(no_other$models$null, 
+                baked_without_missing) -> non_missing_null
 generate_brier_score(non_missing_null)
