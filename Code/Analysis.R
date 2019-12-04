@@ -156,7 +156,7 @@ models$kknn <-
   set_engine('kknn') %>%
   fit(attr_source ~ ., juice(recipe))
 
-# C5.0
+# C5.0 ----
 set.seed(1119)
 models$c50 <- train(
   blueprint, 
@@ -166,9 +166,10 @@ models$c50 <- train(
   control = C50::C5.0Control(seed = 1)
 )
 
-ggplot(cv_c50)
-cv_c50$bestTune
+ggplot(models$c50)
+models$c50$bestTune
 
+# xgboost ----
 set.seed(1119)
 models$xgboost <- 
   boost_tree() %>% 
@@ -176,6 +177,7 @@ models$xgboost <-
   set_engine('xgboost') %>% 
   fit(attr_source ~ ., juice(recipe))
 
+# ranger ----
 set.seed(1119)
 models$ranger <- train(
   blueprint, 
@@ -192,7 +194,7 @@ ggplot(models$ranger)
 models$ranger$bestTune
 
 
-
+# Results ----
 mars_results <-
   predict(mars, select(anal_testing, -attr_source), 
         type = 'response') %>% 
@@ -268,6 +270,8 @@ brier_scores <- results_table %>%
 
 models$mars <- mars
 save(models, file = 'DataProcessed/model_objects.RData')
+save(models$ranger, file = 'SourceAttribution/ranger_model_obj.rda')
+save(anal_training[0, ], file = 'SourceAttribution/file_skeleton.rda')
 
 
 

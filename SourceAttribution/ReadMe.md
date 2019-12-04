@@ -1,6 +1,6 @@
 # Source Attribution
 **PI:** Alice White  
-**Analysts:** David Weitzencamp, PhD Caroline Ledbetter, MPH  
+**Analysts:** Caroline Ledbetter, MPH  
 **Project Start Date:** May 16, 2018  
 
 ### About this project:

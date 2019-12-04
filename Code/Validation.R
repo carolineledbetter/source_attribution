@@ -146,6 +146,12 @@ analysis <-
   filter(!is.na(attr_source)) %>% 
   select(-food_source, -primary_mode) 
 
+
+# Format Validation Set ----
+# format dataset in same style as used for model development
+# classify serotypes the same as in orginal data
+# if serotype is not in original dataset - set to rare
+
 load(file = "DataProcessed/SeroGroupings.rda")
 
 analysis <- 
@@ -156,7 +162,6 @@ analysis <-
     !is.na(serogroup) ~ serogroup, 
     TRUE ~ serotype)) %>% 
   select(-serogroup)
-
 
 validate <- analysis %>% 
   mutate(serotype = str_remove(serotype, ' var.+$'), 
@@ -185,13 +190,14 @@ validate <- validate %>%
 
 save(validate, file = 'DataProcessed/validation_data.RData')
 
+# only complete cases
 validate <- validate %>% 
-  mutate_if(is.character, as.factor) %>% 
   drop_na
 
-
+# load model
 load(file = 'DataProcessed/model_objects.RData')
 
+# Brier Score ----
 predict(models$ranger, validate, type = 'prob') %>% 
   bind_cols(select(validate, attr_source)) %>% 
   pivot_longer(-attr_source, 
@@ -201,6 +207,7 @@ predict(models$ranger, validate, type = 'prob') %>%
          f_ti_minus_o_ti_sq = (predicted_value - y)^2) %>% 
   summarise(brier_score = 1/n()*sum(f_ti_minus_o_ti_sq))
 
+# Calibration Plot ----
 predict(models$ranger, validate, type = 'prob') %>% 
   bind_cols(select(validate, attr_source)) %>% 
   pivot_longer(-attr_source, 
@@ -235,6 +242,7 @@ predict(models$ranger, validate, type = 'prob') %>%
   geom_abline(slope = 1) + 
   theme_classic()
 ggsave('Reports/Figures/validation_calibration_plot.png')
+ggsave('SourceAttribution/www/validation_calibration_plot.png')
 
 highest_two <- function(...){
   row <- list(...)[[1]]
@@ -243,6 +251,7 @@ highest_two <- function(...){
   return(paste(ordered[1:2], collapse = '.'))
 }
 
+# Accuracy Plot ----
 predict(models$ranger, validate, type = 'prob') %>% 
   bind_cols(select(validate, attr_source)) %>%
   mutate(id = row_number()) %>% 
@@ -263,6 +272,7 @@ predict(models$ranger, validate, type = 'prob') %>%
        y = 'Percent of Outbreaks Where Actual Source was in Top Two') + 
   theme_classic()
 ggsave('Reports/Figures/predicted_top_two.png')
+ggsave('SourceAttribution/www/predicted_top_two.png')
 
 
   
