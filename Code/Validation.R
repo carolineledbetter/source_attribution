@@ -7,9 +7,6 @@
 library(CIDAtools)
 library(tidyverse)
 library(lubridate)
-library(tidymodels)
-library(kknn)
-library(earth)
 
 load('DataRaw/WHIT_20190325_NoWater.RData')
 NORSMain %>% glimpse()
@@ -162,83 +159,110 @@ analysis <-
 
 
 validate <- analysis %>% 
-  mutate(serotype = str_remove(serotype, ' var.+$'))
+  mutate(serotype = str_remove(serotype, ' var.+$'), 
+         attr_source = str_replace(str_to_lower(attr_source), 
+                                            pattern = ' ',
+                                            replacement = '_')
+         ) %>% 
+  select(percent_female, 
+         percent_age_under1, 
+         percent_age1to4, 
+         percent_age5to19, 
+         percent_age20to49, 
+         percent_age50plus, 
+         month, 
+         geography, 
+         serotype, 
+         attr_source) 
+
 load(file = 'DataProcessed/cleaned_model.RData')
 
 validate %>% filter(!serotype %in% analysis$serotype) %>% count(serotype)
 
 validate <- validate %>% 
   mutate(serotype = if_else(serotype %in% analysis$serotype, 
-                            serotype, NA_character_)) 
+                            serotype, 'rare')) 
 
 save(validate, file = 'DataProcessed/validation_data.RData')
 
+validate <- validate %>% 
+  mutate_if(is.character, as.factor) %>% 
+  drop_na
 
-load(file = 'DataProcessed/Results.RData')
 
-recipe <- no_other$recipe
+load(file = 'DataProcessed/model_objects.RData')
 
-baked <- recipe %>% bake(validate)
+predict(models$ranger, validate, type = 'prob') %>% 
+  bind_cols(select(validate, attr_source)) %>% 
+  pivot_longer(-attr_source, 
+               names_to = 'predicted_cat', 
+               values_to = 'predicted_value') %>% 
+  mutate(y = if_else(predicted_cat == attr_source, 1, 0), 
+         f_ti_minus_o_ti_sq = (predicted_value - y)^2) %>% 
+  summarise(brier_score = 1/n()*sum(f_ti_minus_o_ti_sq))
 
-generate_result <- function(pred_model, data){
-  predict(pred_model, 
-          data, 
-          type = 'prob') %>% 
-    bind_cols(data)
+predict(models$ranger, validate, type = 'prob') %>% 
+  bind_cols(select(validate, attr_source)) %>% 
+  pivot_longer(-attr_source, 
+               names_to = 'predicted_cat', 
+               values_to = 'predicted_value') %>% 
+  mutate(y = if_else(predicted_cat == attr_source, 1, 0), 
+       bin_midpoint = cut(predicted_value, 
+                          breaks = seq(0, 1, 0.2), 
+                          include.lowest = T, 
+                          labels = seq(0.1, 0.9, 0.2)), 
+       bin_midpoint = as.numeric(as.character(bin_midpoint))) %>% 
+  group_by(predicted_cat, bin_midpoint) %>% 
+  count(y) %>% 
+  mutate(pct = n/sum(n)) %>% 
+  ungroup() %>% 
+  mutate(predicted_cat = str_to_title(str_replace(predicted_cat, 
+                                                  pattern = '_',
+                                                  replacement = ' '))
+  ) %>% 
+  filter(y == 1) %>% 
+  ggplot(aes(x = bin_midpoint, 
+             y = pct, 
+             colour = predicted_cat)) +
+  geom_line(aes(group = predicted_cat)) +
+  geom_point(aes(size = n)) + 
+  scale_x_continuous(breaks = seq(0.1, 0.9, 0.2)) + 
+  scale_y_continuous(breaks = seq(0.1, 0.9, 0.2)) +
+  labs(x = 'Predicted Bin Midpoint', 
+       y = 'Observed Event Proportion', 
+       title = 'Calibration Plots For All Models', 
+       colour = 'Outbreak Source') + 
+  geom_abline(slope = 1) + 
+  theme_classic()
+ggsave('Reports/Figures/validation_calibration_plot.png')
+
+highest_two <- function(...){
+  row <- list(...)[[1]]
+  values <- unlist(row)
+  ordered <- names(sort(values, decreasing = TRUE))
+  return(paste(ordered[1:2], collapse = '.'))
 }
 
-generate_result_table <- function(result) {
-  result %>% 
-    select(-contains('Other')) %>% 
-    mutate(outbreak_id = row_number()) %>% 
-    pivot_longer(starts_with('.pred_'), 
-                 names_to = 'predicted_cat', 
-                 values_to = 'predicted_value') %>% 
-    mutate(predicted_cat = str_remove(predicted_cat, '\\.pred_'), 
-           y = if_else(predicted_cat == attr_source, 1, 0)) 
-}
-
-generate_brier_score <- function(result){
-  generate_result_table(result) %>% 
-    mutate(f_ti_minus_o_ti_sq = (predicted_value - y)^2) %>% 
-    summarise(brier_score = 1/n()*sum(f_ti_minus_o_ti_sq))
-}
-
-generate_result(no_other$models$xgboost, baked) -> result
-generate_brier_score(result)
-
-generate_result(no_other$models$null, baked) -> null_result
-generate_brier_score(null_result)
-
-# mars_results <-
-#   predict(no_other$models$mars, baked, type = 'response') %>%
-#   as_tibble() %>%
-#   select(-contains('Other')) %>% 
-#   rename(`Animal Contact` = AnimalContact) %>%
-#   rename_all(~str_c('.pred_', .)) %>%
-#   bind_cols(baked)
-# generate_brier_score(mars_results)
+predict(models$ranger, validate, type = 'prob') %>% 
+  bind_cols(select(validate, attr_source)) %>%
+  mutate(id = row_number()) %>% 
+  group_by(id, attr_source) %>% 
+  nest() %>% 
+  transmute(two_highest = map(data, highest_two)) %>% 
+  unnest(two_highest) %>% 
+  separate(two_highest, into = c('highest', 'second_highest'), sep = '\\.') %>% 
+  mutate(accurate = attr_source %in% c(highest, second_highest)) %>% 
+  group_by(attr_source) %>% 
+  count(accurate) %>% 
+  mutate(pct = n/sum(n)) %>% 
+  filter(accurate) %>% 
+  ggplot(aes(y = pct, str_to_title(str_replace(attr_source, '_', ' ')))) + 
+  geom_col(aes(fill = str_to_title(str_replace(attr_source, '_', ' ')))) + 
+  guides(fill = 'none') + 
+  labs(x = 'Actual Attributed Source', 
+       y = 'Percent of Outbreaks Where Actual Source was in Top Two') + 
+  theme_classic()
+ggsave('Reports/Figures/predicted_top_two.png')
 
 
-generate_result_table(result) -> validation_results
-
-
-validate_no_missing <- validate %>% 
-  filter_at(vars(percent_female, 
-                 percent_age_under1, 
-                 percent_age1to4, 
-                 percent_age20to49, 
-                 percent_age5to19, 
-                 percent_age50plus, 
-                 total_cases, 
-                 month, 
-                 geography, 
-                 serotype), all_vars(!is.na(.)))
-baked_without_missing <- bake(recipe, validate_no_missing)
-generate_result(no_other$models$xgboost, 
-                baked_without_missing) -> non_missing_result
-generate_brier_score(non_missing_result)
-
-generate_result(no_other$models$null, 
-                baked_without_missing) -> non_missing_null
-generate_brier_score(non_missing_null)
+  
