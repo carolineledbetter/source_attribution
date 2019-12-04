@@ -10,186 +10,267 @@ library(tidyverse)
 library(tidymodels)
 library(kknn)
 library(earth)
-library(sp)
+library(ranger)
+library(xgboost)
+library(C50)
+library(caret)
 
-run_predictions <- function(data){
-  set.seed(1450)
-  analysis_split <- data %>% 
-    initial_split(strata = attr_source)
-  analysis_split
-  
-  analysis_split %>% glimpse()
+# model_set ----
+model_set <- analysis %>% 
+  select(percent_female, 
+         percent_age_under1, 
+         percent_age1to4, 
+         percent_age5to19, 
+         percent_age20to49, 
+         percent_age50plus, 
+         month, 
+         geography, 
+         serotype, 
+         attr_source) %>% 
+  filter(!str_detect(attr_source, 'Other')) %>% 
+  mutate(attr_source = str_replace(str_to_lower(attr_source), 
+                                   pattern = ' ',
+                                   replacement = '_'))
 
-  suppressWarnings({
-    recipe <- 
-      training(analysis_split) %>% 
-      recipe(attr_source ~ percent_female + 
-             percent_age_under1 + 
-             percent_age1to4 + 
-             percent_age20to49 + 
-             percent_age5to19 + 
-             percent_age50plus + 
-             total_cases + 
-             month + 
-             geography + 
-             serotype) %>% 
-      step_filter(!str_detect(attr_source, 'Other')) %>% 
-      step_center(all_numeric()) %>% 
-      step_scale(all_numeric()) %>% 
-      step_string2factor(all_nominal()) %>% 
-      step_knnimpute(all_predictors(), skip = TRUE) %>% 
-      prep()
+# training split
+set.seed(1450)
+analysis_split <- model_set %>% 
+  initial_split(strata = attr_source)
+analysis_split
+
+analysis_split %>% glimpse()
+
+# impute missing data
+recipe <- 
+  training(analysis_split) %>% 
+  recipe(attr_source ~ .) %>% 
+  step_string2factor(all_nominal()) %>% 
+  step_knnimpute(all_predictors()) %>% 
+  prep()
     
-    juice(recipe) %>% glimpse()
+anal_training <- juice(recipe) 
+anal_training %>% glimpse()
     
-    anal_testing <- recipe %>% 
-      bake(testing(analysis_split))
-    
-    models <- list()
-    
-    models$null <- 
-      null_model() %>% 
-      set_mode('classification') %>% 
-      set_engine('parsnip') %>% 
-      fit(attr_source ~ ., juice(recipe))
-    
-    # models$kknn <-
-    #   nearest_neighbor() %>%
-    #   set_mode('classification') %>%
-    #   set_engine('kknn') %>%
-    #   fit(attr_source ~ ., juice(recipe))
-    
-    models$c50 <- 
-      boost_tree() %>% 
-      set_mode('classification') %>% 
-      set_engine('C5.0') %>% 
-      fit(attr_source ~ ., juice(recipe))
-    
-    models$xgboost <- 
-      boost_tree() %>% 
-      set_mode('classification') %>% 
-      set_engine('xgboost') %>% 
-      fit(attr_source ~ ., juice(recipe))
-    
-    # models$spark <- 
-    #   boost_tree() %>% 
-    #   set_mode('classification') %>% 
-    #   set_engine('spark') %>% 
-    #   fit(attr_source ~ ., juice(recipe))
-    
-   #  mars <- earth(attr_source ~ ., juice(recipe))
-    
-  })
-  
-  
-  # mars_results <-
-  #   predict(mars, anal_testing, type = 'response') %>%
-  #   as_tibble() %>%
-  #   select(-contains('Other')) %>% 
-  #   rename(`Animal Contact` = AnimalContact) %>%
-  #   rename_all(~str_c('.pred_', .)) %>%
-  #   mutate(model = 'mars') %>%
-  #   bind_cols(anal_testing)
-  
-  generate_result <- function(pred_model){
-    predict(pred_model, 
-            anal_testing, 
-            type = 'prob') %>% 
-      bind_cols(anal_testing)
-  }
-  
-  generate_result_table <- function(result) {
-    result %>% 
-      select(-contains('Other')) %>% 
-      pivot_longer(starts_with('.pred_'), 
-                   names_to = 'predicted_cat', 
-                   values_to = 'predicted_value') %>% 
-      mutate(predicted_cat = str_remove(predicted_cat, '\\.pred_'), 
-             y = if_else(predicted_cat == attr_source, 1, 0)) 
-  }
-  
-  generate_brier_score <- function(result){
-    generate_result_table(result) %>% 
-      mutate(f_ti_minus_o_ti_sq = (predicted_value - y)^2) %>% 
-      group_by(model) %>% 
-      summarise(brier_score = 1/n()*sum(f_ti_minus_o_ti_sq))
-  }
-  
-  map_dfr(models, generate_result, .id = 'model') %>% 
-    # bind_rows(mars_results) %>% 
-    generate_result_table() %>% 
-    mutate(bin_midpoint = cut(predicted_value, 
-                              breaks = seq(0, 1, 0.2), 
-                              include.lowest = T, 
-                              labels = seq(0.1, 0.9, 0.2)), 
-           bin_midpoint = as.numeric(as.character(bin_midpoint))) %>% 
-    group_by(model, predicted_cat, bin_midpoint) %>% 
-    count(y) %>% 
-    mutate(pct = n/sum(n)) %>% 
-    filter(y == 1 & model != 'null') %>% 
-    ggplot(aes(x = bin_midpoint, 
-               y = pct, 
-               colour = predicted_cat)) +
-    geom_line(aes(group = predicted_cat)) +
-    geom_point(aes(size = n)) + 
-    scale_x_continuous(breaks = seq(0.1, 0.9, 0.2)) + 
-    scale_y_continuous(breaks = seq(0.1, 0.9, 0.2)) +
-    labs(x = 'Bin Midpoint', 
-         y = 'Observed Event Proportion', 
-         title = 'Calibration Plots For All Models', 
-         colour = 'Outbreak Source') + 
-    geom_abline(slope = 1) + 
-    theme_classic() + 
-    facet_wrap(vars(model)) -> plots
-  
-  map_dfr(models, generate_result, 
-          .id = 'model') %>% 
-    # bind_rows(mars_results) %>% 
-    generate_brier_score() -> brier_scores
-  
-  map_dfr(models, generate_result, 
-          .id = 'model') %>% 
-    # bind_rows(mars_results) %>% 
-    generate_result_table() -> predictions
-  
-  # models$mars <- mars
-  
-  return(list(plots = plots, brier_scores = brier_scores, 
-              predictions = predictions, models = models, 
-              recipe = recipe))
-  
+anal_testing <- recipe %>% 
+  bake(testing(analysis_split))
+
+# modelling ----    
+models <- list()
+blueprint <- as.formula(attr_source ~ .)
+cv_train <- trainControl(method = 'cv', number = 5, 
+                         classProbs = TRUE, 
+                         seeds = lapply(1:nrow(anal_training), 
+                                        function(x) 1:20))
+
+# null model ----
+models$null <- 
+  null_model() %>% 
+  set_mode('classification') %>% 
+  set_engine('parsnip') %>% 
+  fit(attr_source ~ ., juice(recipe))
+
+# mars model ----
+# create tuning grid
+hyper_grid <- expand.grid(
+  degree = 1:3, 
+  nprune = seq(2, 100, length.out = 10) %>% 
+    floor()
+)
+
+set.seed(1119)
+cv_mars <- train(
+  blueprint, 
+  data = anal_training, 
+  method = "earth",
+  trControl = cv_train,
+  tuneGrid = hyper_grid
+)
+
+cv_mars$bestTune
+ggplot(cv_mars)
+
+# narrow search
+hyper_grid <- expand.grid(
+  degree = 1:3, 
+  nprune = seq(18, 27, length.out = 10) %>% 
+    floor()
+)
+
+set.seed(1119)
+cv_mars <- train(
+  blueprint, 
+  data = anal_training, 
+  method = "earth",
+  trControl = cv_train,
+  tuneGrid = hyper_grid
+)
+
+cv_mars$bestTune
+ggplot(cv_mars)
+
+# select best model
+mars <- earth(blueprint, 
+                     data = anal_training, 
+                     degree = 2, 
+                     nprune = 18)
+
+# weighted k nearest neighboors ----
+hyper_grid <- expand.grid(
+  k = seq(1, nrow(anal_training)/3, length.out = 20) %>% 
+    floor
+)
+
+# Fit knn model and perform grid search
+set.seed(1119)
+knn_grid <- train(
+  blueprint, 
+  data = anal_training, 
+  method = "knn", 
+  trControl = cv_train, 
+  tuneGrid = hyper_grid
+)
+
+ggplot(knn_grid)
+knn_grid$bestTune
+
+hyper_grid <- expand.grid(
+  k = seq(30, 100, length.out = 20) %>% 
+    floor
+)
+
+set.seed(1119)
+knn_grid <- train(
+  blueprint, 
+  data = anal_training, 
+  method = "knn", 
+  trControl = cv_train, 
+  tuneGrid = hyper_grid
+)
+
+ggplot(knn_grid)
+knn_grid$bestTune
+
+models$kknn <-
+  nearest_neighbor(neighbors = 44) %>%
+  set_mode('classification') %>%
+  set_engine('kknn') %>%
+  fit(attr_source ~ ., juice(recipe))
+
+# C5.0
+set.seed(1119)
+models$c50 <- train(
+  blueprint, 
+  data = anal_training, 
+  method = "C5.0", 
+  trControl = cv_train, 
+  control = C50::C5.0Control(seed = 1)
+)
+
+ggplot(cv_c50)
+cv_c50$bestTune
+
+set.seed(1119)
+models$xgboost <- 
+  boost_tree() %>% 
+  set_mode('classification') %>% 
+  set_engine('xgboost') %>% 
+  fit(attr_source ~ ., juice(recipe))
+
+set.seed(1119)
+models$ranger <- train(
+  blueprint, 
+  data = anal_training, 
+  method = "ranger", 
+  trControl = cv_train, 
+  num.trees = 20,
+  seed = 345, 
+  num.threads = 1,
+  importance = "permutation"
+)
+
+ggplot(models$ranger)
+models$ranger$bestTune
+
+
+
+mars_results <-
+  predict(mars, select(anal_testing, -attr_source), 
+        type = 'response') %>% 
+  as_tibble() %>% 
+  mutate(model = 'mars') %>%
+  bind_cols(select(anal_testing, attr_source))
+
+
+
+generate_result <- function(pred_model){
+  predict(pred_model, 
+          select(anal_testing, -attr_source), 
+          type = 'prob') %>% 
+    rename_at(vars(starts_with('.pred')), str_remove, '.pred_') %>% 
+    bind_cols(select(anal_testing, attr_source))
 }
 
-set.seed(1454)
-analysis %>% 
-  select(-year) %>% 
-  filter(!str_detect(attr_source, 'Other')) %>% 
-  add_count(attr_source) %>%
-  mutate(weight = 1/(7*n)) %>%
-  sample_n(950, weight = weight) %>% 
-  select(-n, -weight) -> anal_sampled
+results <- map_dfr(models, generate_result, .id = 'model') %>% 
+  bind_rows(mars_results)
 
-run_predictions(analysis) -> no_other
-no_other$plots
+generate_result_table <- function(result) {
+  result %>% 
+    pivot_longer(starts_with('.pred_'), 
+                 names_to = 'predicted_cat', 
+                 values_to = 'predicted_value') %>% 
+    mutate(predicted_cat = str_remove(predicted_cat, '\\.pred_'), 
+           y = if_else(predicted_cat == attr_source, 1, 0)) 
+}
 
-analysis %>% 
-  mutate(   
-    attr_source = fct_collapse(attr_source, 
-                               `Meat-Poultry` = c('Meat', 
-                                                  'Poultry', 
-                                                  'Meat-Poultry Other'), 
-                               `Produce` = c('Fruits', 
-                                             'Vegetables', 
-                                             'Produce Other')
-                               )
-  ) %>% 
-  filter(!attr_source %in% c('Dairy')) %>%
-    droplevels() %>% 
-  run_predictions() -> collapsed
+results_table <- results %>% 
+  pivot_longer(-c(attr_source, model), 
+               names_to = 'predicted_cat', 
+               values_to = 'predicted_value') %>% 
+  mutate(y = if_else(predicted_cat == attr_source, 1, 0)) 
 
-collapsed$plots
+results_table %>% 
+  mutate(bin_midpoint = cut(predicted_value, 
+                            breaks = seq(0, 1, 0.2), 
+                            include.lowest = T, 
+                            labels = seq(0.1, 0.9, 0.2)), 
+         bin_midpoint = as.numeric(as.character(bin_midpoint))) %>% 
+  group_by(model, predicted_cat, bin_midpoint) %>% 
+  count(y) %>% 
+  mutate(pct = n/sum(n)) %>% 
+  ungroup() %>% 
+  mutate(model = factor(model, 
+                         levels = c('null', 'mars', 'kknn', 
+                                    'c50', "xgboost", 'ranger')), 
+         predicted_cat = str_to_title(str_replace(predicted_cat, 
+                                                  pattern = '_',
+                                                  replacement = ' '))
+         ) %>% 
+  filter(y == 1) %>% 
+  ggplot(aes(x = bin_midpoint, 
+             y = pct, 
+             colour = predicted_cat)) +
+  geom_line(aes(group = predicted_cat)) +
+  geom_point(aes(size = n)) + 
+  scale_x_continuous(breaks = seq(0.1, 0.9, 0.2)) + 
+  scale_y_continuous(breaks = seq(0.1, 0.9, 0.2)) +
+  labs(x = 'Bin Midpoint', 
+       y = 'Observed Event Proportion', 
+       title = 'Calibration Plots For All Models', 
+       colour = 'Outbreak Source') + 
+  geom_abline(slope = 1) + 
+  theme_classic() + 
+  facet_wrap(vars(model))
+
+brier_scores <- results_table %>% 
+  mutate(f_ti_minus_o_ti_sq = (predicted_value - y)^2) %>% 
+  group_by(model) %>% 
+  summarise(brier_score = 1/n()*sum(f_ti_minus_o_ti_sq))
+
+models$mars <- mars
+save(models, file = 'DataProcessed/model_objects.RData')
 
 
-save(collapsed, no_other, file = 'DataProcessed/Results.RData')
+
+
 
 
