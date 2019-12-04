@@ -14,47 +14,46 @@
 #
 library(shiny)
 library(caret) 
-library(kknn) # necessary to predict with algorithm we chose
-library(tidyr) # for gather
-library(ggplot2) # for plotting
+library(ranger) # necessary to predict with algorithm we chose
+library(tidyverse)
 
 # load prediction algortithm
-load(file = 'knnnmodelobj.rda')
+load(file = 'ranger_model_obj.rda')
 
 # load empty data frame with required predictors and possible levels
-load(file = 'FileSkeleton.rda')
+load(file = 'file_skeleton.rda')
 
 # classify rare serotypes according to primary source
-NonSpecific <- c('Agona', 'Anatum','Berta', 'Mbandaka', 'Muenchen', 
-                 'Stanley', 'Thompson')
-PrimaryAnimal <- c('Derby', 'Group B', 'Hadar', 'Infantis', 'Johannesburg', 
-                   'Oranienburg', 'Reading', 'Sandiego', 
-                   'Typhimurium var Cope', 'Uganda')
-PrimaryPlant <- c('Cubana', 'Poona', 'Senftenberg', 'Virchow')
+load(file = "SeroGroupings.rda")
 
-# format salmonella serotypes for tidy appearance in webplatform
-SalmSeroTypes <- levels(input_skeleton$Agent)
-SalmSeroTypes <- SalmSeroTypes[!SalmSeroTypes %in% c('NonSpecific Sero group', 
-                                    "Primary Animal Sero group", 
-                                    "Primary Plant Sero group")]
-Serogroups <- c(SalmSeroTypes, NonSpecific, PrimaryAnimal, 
-                PrimaryPlant)
-Serogroups <- Serogroups[order(Serogroups)]
-names(Serogroups) <- Serogroups
-names(Serogroups)[Serogroups %in% 'Salm unk sero'] <- 'Unknown'
-names(Serogroups)[Serogroups %in% 'Rare'] <- "Other"
-names(Serogroups)[Serogroups %in% 'STEC'] <- " "
-
-Serogroups <- as.list(Serogroups)
+# format salmonella serotypes for tidy appearance in webplatform\
+rare <- rare %>% 
+    mutate(serogroup = 'rare') %>% 
+    select(-n)
+salm_sero_types <- 
+    tibble(serogroup = levels(skeleton$serotype)) %>% 
+    mutate(serotype = if_else(!serogroup %in% c(uncommon_sero$serogroup, 
+                                                'rare', 'STEC'), 
+                               serogroup, NA_character_)
+           ) %>% 
+    drop_na() %>% 
+    bind_rows(uncommon_sero, rare) %>% 
+    arrange(serotype) %>% 
+    add_row(serogroup = 'rare', serotype = "Other") %>% 
+    add_row(serogroup = 'rare', serotype = "Other") %>% 
+    add_row(serogroup = 'STEC', serotype = ' ') %>% 
+    select(serotype, serogroup) %>% 
+    deframe()
 
 # format Geography for tidy appearance in webplatform
-Geography <- as.list(levels(input_skeleton$Geography))
-names(Geography) <- Geography
-names(Geography)[Geography == 'Missing'] <- 'Unknown'
+geography <- as.list(levels(skeleton$geography))
+names(geography) <- str_to_title(str_replace(levels(skeleton$geography), 
+                                  pattern = '_', 
+                                  replacement = ' '))
 
 # Set up named month list
-Months <- as.list(1:12)
-names(Months) <- month.name
+months <- as.list(1:12)
+names(months) <- month.name
 
 # Define User Interface
 ui <- fluidPage(
@@ -102,13 +101,13 @@ ui <- fluidPage(
                              max = Inf, 
                              value = 0),
                     
-                selectInput('Month', 
+                selectInput('month', 
                             span("Month of first illness onset", 
                                  div(class = 'required', 
                                      '*required')), 
                             choices = c('Choose one' = '', 
-                                        Months)), 
-                radioButtons('Geography', 
+                                        months)), 
+                radioButtons('geography', 
                              label = span(
                                  span(class = 'inst', 
                                       "Geography of exposures", 
@@ -118,7 +117,7 @@ ui <- fluidPage(
                                      'The geography of the suspected exposures,',  
                                      br(), 
                                      'not the residence of the cases.')), 
-                             choices = Geography, 
+                             choices = geography, 
                              selected = character(0)),
                 radioButtons('.bacteria', 
                              span('Infectious Agent', 
@@ -127,7 +126,7 @@ ui <- fluidPage(
                              selected =  character(0), 
                              choiceNames = c('STEC', 'Salmonella'), 
                              choiceValues = 1:2), 
-                selectInput('Agent', 
+                selectInput('serotype', 
                             label = span(
                                 span(class = 'inst', 
                                      'Salmonella Serotype', 
@@ -137,64 +136,41 @@ ui <- fluidPage(
                                     'If the suspected agent is Salmonella,', 
                                     br(), '
                                     you must select a serotype. Other, ', br(), 
-                                    'Unknown, and Multiple are options.')),
+                                    'and Unknown are options.')),
                             choices = c('Choose STEC or Salmonella First' = "")), 
-                sliderInput('GenderMale', 'Male', 
-                            min = 0, 
-                            max = 0, 
-                            value = 0, 
-                            ticks = F, step = 1),
-                sliderInput('GenderFemale', 'Female', 
-                            min = 0, 
-                            max = 0, 
-                            value = 0, 
-                            ticks = F, step = 1),
-                sliderInput('GenderSexUnknown', 'Unknown', 
-                            min = 0, 
-                            max = 0, 
-                            value = 0, 
-                            ticks = F, step = 1),
-                sliderInput('Hosp', 'Cases Hospitalized', 
-                            min = 0, 
-                            max = 0, 
-                            ticks = F, 
-                            value = 0, step = 1)
-                , style = "width:350px;"
+                 style = "width:350px;"
                 ), 
             # Right side of Sidebar Age inputs and submit button
             wellPanel(
-                numericInput('AgeUnder1', 'Under 1 Year', 
+                numericInput('male', 'Male', 
+                                  min = 0, 
+                                  max = 0, 
+                                  value = 0),
+                numericInput('female', 'Female', 
+                                  min = 0, 
+                                  max = 0, 
+                                  value = 0)
+                      ,
+                numericInput('age_under1', 'Under 1 Year', 
                              min = 0, 
                              max = Inf, 
                              value = 0), 
-                numericInput('Age1to4', '1 yr to 4 yrs', 
+                numericInput('age1to4', '1 yr to 4 yrs', 
                              min = 0, 
                              max = Inf, 
                              value = 0), 
-                numericInput('Age5to9', '5 yrs to 9 yrs', 
-                             min = 0, 
-                             max = Inf, 
-                             value = 0), 
-                numericInput('Age10to19', '10 yrs to 19 yrs', 
+                numericInput('age5to19', '5 yrs to 19 yrs', 
                              min = 0, 
                              max = Inf, 
                              value = 0),             
-                numericInput('Age20to49', '20 yrs to 49 yrs', 
+                numericInput('age20to49', '20 yrs to 49 yrs', 
                              min = 0, 
                              max = Inf, 
                              value = 0), 
-                numericInput('Age50to74', '50 yrs to 74 yrs', 
-                             min = 0, 
-                             max = Inf, 
-                             value = 0), 
-                numericInput('Age75plus', '75 yrs or older', 
+                numericInput('age50plus', '50 yrs or older', 
                              min = 0, 
                              max = Inf, 
                              value = 0),
-                numericInput('AgeUnknown', 'Age Unknown', 
-                             min = 0, 
-                             max = Inf, 
-                             value = 0), 
                 actionButton('.Submit', 'Submit')
                 , style = "width:150px;"
                 ), cellWidths = c('350px', '150px')
@@ -275,8 +251,8 @@ server <- function(input, output, session) {
                 validate(
                     need(input$TotalCases > 0,
                          'You must have at least one case'),
-                    need(length(input$Geography) > 0, 
-                         'You must select a geography of expoure'), 
+                    need(length(input$Geography) > 0,
+                         'You must select a geography of expoure'),
                     need(input$Month != "",
                          'You must choose a month'),
                     need(input$Agent != "",
@@ -289,8 +265,8 @@ server <- function(input, output, session) {
                 )
                 # process inputs into a dataframe
                 Inputs <- reactiveValuesToList(input)
-                
-                # convert misc salmonella serotypes to a format recognizable 
+
+                # convert misc salmonella serotypes to a format recognizable
                 # to the model
                 Agent <- Inputs$Agent
                 if(Agent %in% NonSpecific) Agent <- 'NonSpecific Sero group'
@@ -321,11 +297,11 @@ server <- function(input, output, session) {
                                                    return(y)
                                                })
                 Inputs$HospPercent2 <- Inputs$Hosp/Inputs$TotalCases
-                
+
                 # keep only predictors in the model
                 Inputs <- subset(Inputs,
                                  select = names(input_skeleton))
-                
+
                 # paste predictors into the empty data frame so levels/structure
                 # is preserved
                 input_skeleton[1, ] <- Inputs[1, ]
@@ -334,7 +310,7 @@ server <- function(input, output, session) {
                 # convert probabilites from 4 columns to 2 (one with source,
                 # one with probality) for ggplot
                 pred <- gather(pred, 1:4, key = 'source', value = 'prob')
-                
+
                 # plot
                 ggplot(data = pred, aes(x = source, y = prob)) +
                     geom_col(aes(fill = source)) +
@@ -347,93 +323,93 @@ server <- function(input, output, session) {
             })
         }, width = 800, height = 800, res = 200)
     })
-    
+
     # update salmonella serotype dropdown based on STEC/salmonella selection
     observeEvent(input$.bacteria, {
         if(input$.bacteria == 1) choice <- list(" " = 'STEC' )
         if(input$.bacteria == 2) {
             excl <- which(names(Serogroups) == ' ')
-            choice <- c(list('Choose one' = ""), 
+            choice <- c(list('Choose one' = ""),
                                             Serogroups[-excl])
             }
         updateSelectInput(session, 'Agent', choices = choice)
     })
-    
+
     # update possibe gender, age amd hospilization cases based on total cases
     observeEvent(input$TotalCases, {
         tot <- input$TotalCases
-        updateSliderInput(session, 'GenderMale', 
-                          min = 0, 
+        updateSliderInput(session, 'GenderMale',
+                          min = 0,
                           max = tot)
-        updateSliderInput(session, 'GenderFemale', 
-                          min = 0, 
+        updateSliderInput(session, 'GenderFemale',
+                          min = 0,
                           max = tot - input$GenderMale)
-        updateSliderInput(session, 'GenderSexUnknown', 
-                          min = 0, 
-                          max = tot - input$GenderMale - input$GenderFemale, 
+        updateSliderInput(session, 'GenderSexUnknown',
+                          min = 0,
+                          max = tot - input$GenderMale - input$GenderFemale,
                           val = tot - input$GenderMale - input$GenderFemale)
-        total <- sum(input$AgeUnder1, 
-                     input$Age1to4, 
-                     input$Age5to9, 
-                     input$Age10to19, 
-                     input$Age20to49, 
-                     input$Age50to74, 
+        total <- sum(input$AgeUnder1,
+                     input$Age1to4,
+                     input$Age5to9,
+                     input$Age10to19,
+                     input$Age20to49,
+                     input$Age50to74,
                      input$Age75plus)
-        updateNumericInput(session, 'AgeUnknown', 
-                           max = input$TotalCases - total, 
+        updateNumericInput(session, 'AgeUnknown',
+                           max = input$TotalCases - total,
                            value = input$TotalCases - total)
-        updateSliderInput(session, 'Hosp', 
+        updateSliderInput(session, 'Hosp',
                           max = input$TotalCases)
         ### Max doesn't really need to be updated as it doesn't prevent you
         ### from enteriing a higher value
-        # updateNumericInput(session, 'AgeUnder1', 
+        # updateNumericInput(session, 'AgeUnder1',
         #                    max = input$TotalCases)
-        # updateNumericInput(session, 'Age1to4', 
+        # updateNumericInput(session, 'Age1to4',
         #                    max = input$TotalCases)
-        # updateNumericInput(session, 'Age5to9', 
+        # updateNumericInput(session, 'Age5to9',
         #                    max = input$TotalCases)
-        # updateNumericInput(session, 'Age10to19', 
-        #                    max = input$TotalCases)        
-        # updateNumericInput(session, 'Age20to49', 
-        #                    max = input$TotalCases)       
-        # updateNumericInput(session, 'Age50to74', 
+        # updateNumericInput(session, 'Age10to19',
         #                    max = input$TotalCases)
-        # updateNumericInput(session, 'Age75plus', 
+        # updateNumericInput(session, 'Age20to49',
+        #                    max = input$TotalCases)
+        # updateNumericInput(session, 'Age50to74',
+        #                    max = input$TotalCases)
+        # updateNumericInput(session, 'Age75plus',
         #                    max = input$TotalCases)
     })
-    
+
     # update Female and Unknown Gender cases based on Male/Female cases
     observeEvent(input$GenderMale, {
-        updateSliderInput(session, 'GenderFemale', 
-                          min = 0, 
+        updateSliderInput(session, 'GenderFemale',
+                          min = 0,
                           max = input$TotalCases - input$GenderMale)
     })
-    
+
     observeEvent(input$GenderFemale|input$GenderMale, {
         val <- input$TotalCases - input$GenderMale - input$GenderFemale
-        updateSliderInput(session, 'GenderSexUnknown', 
-                          min = 0, 
-                          max = val, 
+        updateSliderInput(session, 'GenderSexUnknown',
+                          min = 0,
+                          max = val,
                           val = val)
     })
-    
+
     # update unknown age to be difference of total cases and all age groups
     observeEvent(input$AgeUnder1|input$Age1to4|
                      input$Age5to9|input$Age10to19|
                      input$Age20to49|input$Age50to74|
                      input$Age75plus, {
-                         total <- sum(input$AgeUnder1, 
-                                      input$Age1to4, 
-                                      input$Age5to9, 
-                                      input$Age10to19, 
-                                      input$Age20to49, 
-                                      input$Age50to74, 
+                         total <- sum(input$AgeUnder1,
+                                      input$Age1to4,
+                                      input$Age5to9,
+                                      input$Age10to19,
+                                      input$Age20to49,
+                                      input$Age50to74,
                                       input$Age75plus)
-                         updateNumericInput(session, 'AgeUnknown', 
-                                            max = input$TotalCases - total, 
+                         updateNumericInput(session, 'AgeUnknown',
+                                            max = input$TotalCases - total,
                                             value = input$TotalCases - total)
                      })
-                    
+
     
 }
 

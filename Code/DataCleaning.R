@@ -199,6 +199,7 @@ uncommon_sero <- uncommon_sero %>%
 analysis %>% count(serotype) %>% filter(n <= 3) -> rare
 
 save(rare, uncommon_sero, file = "DataProcessed/SeroGroupings.rda")
+save(rare, uncommon_sero, file = "SourceAttribution/SeroGroupings.rda")
 
 analysis <- 
   analysis %>% 
