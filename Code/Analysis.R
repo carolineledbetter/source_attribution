@@ -269,9 +269,11 @@ brier_scores <- results_table %>%
   summarise(brier_score = 1/n()*sum(f_ti_minus_o_ti_sq))
 
 models$mars <- mars
+final_model <- models$ranger
+skeleton <- anal_training[0, ]
 save(models, file = 'DataProcessed/model_objects.RData')
-save(models$ranger, file = 'SourceAttribution/ranger_model_obj.rda')
-save(anal_training[0, ], file = 'SourceAttribution/file_skeleton.rda')
+save(final_model, file = 'SourceAttribution/ranger_model_obj.rda')
+save(skeleton, file = 'SourceAttribution/file_skeleton.rda')
 
 
 
