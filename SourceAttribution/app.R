@@ -1,6 +1,6 @@
 ###########################################
 # Project: P1330White
-# Author: David Weitzenkamp & Caroline Ledbetter
+# Author: Caroline Ledbetter
 # Date: 11/16/2018
 # #########################################
 
@@ -13,9 +13,10 @@
 #    http://shiny.rstudio.com/
 #
 library(shiny)
-library(caret) 
 library(ranger) # necessary to predict with algorithm we chose
 library(tidyverse)
+library(recipes) # used recipe to bake input
+library(caret)
 
 # load prediction algortithm
 load(file = 'ranger_model_obj.rda')
@@ -24,26 +25,24 @@ load(file = 'ranger_model_obj.rda')
 load(file = 'file_skeleton.rda')
 
 # classify rare serotypes according to primary source
-load(file = "SeroGroupings.rda")
+load(file = "sero_groupings.rda")
+
+load(file = 'recipe.rda')
 
 # format salmonella serotypes for tidy appearance in webplatform\
-rare <- rare %>% 
-    mutate(serogroup = 'rare') %>% 
-    select(-n)
-salm_sero_types <- 
-    tibble(serogroup = levels(skeleton$serotype)) %>% 
-    mutate(serotype = if_else(!serogroup %in% c(uncommon_sero$serogroup, 
-                                                'rare', 'STEC'), 
-                               serogroup, NA_character_)
-           ) %>% 
-    drop_na() %>% 
-    bind_rows(uncommon_sero, rare) %>% 
+
+sero_groupings <- sero_groupings %>% 
     arrange(serotype) %>% 
     add_row(serogroup = 'rare', serotype = "Other") %>% 
-    add_row(serogroup = 'rare', serotype = "Other") %>% 
-    add_row(serogroup = 'STEC', serotype = ' ') %>% 
-    select(serotype, serogroup) %>% 
-    deframe()
+    add_row(serogroup = '(missing)', serotype = 'Unknown') 
+
+salm_sero <- sero_groupings %>% 
+    filter(serotype != 'STEC') %>% 
+    mutate(serogroup = serotype) %>% 
+    deframe() %>% 
+    as.list()
+
+
 
 # format Geography for tidy appearance in webplatform
 geography <- as.list(levels(skeleton$geography))
@@ -138,7 +137,8 @@ ui <- fluidPage(
                                     you must select a serotype. Other, ', br(), 
                                     'and Unknown are options.')),
                             choices = c('Choose STEC or Salmonella First' = "")), 
-                 style = "width:350px;"
+                actionButton('.cal_graph', 'Calibration Graph'), 
+                style = "width:350px;"
                 ), 
             # Right side of Sidebar Age inputs and submit button
             wellPanel(
@@ -184,12 +184,14 @@ ui <- fluidPage(
               'help with hypothesis generation during an enteric ', 
               'disease outbreak investigation. The tool was ', 
               'developed using statistical prediction methods ', 
-              '[add link to future manuscript or methods ', 
-              'description] and historical Salmonella and shiga ', 
+              "(code can be found ", 
+              a(href = "https://github.com/ledbettc/p1330_white", 
+                "here"), "). ", 
+              'and historical Salmonella and shiga ', 
               'toxin-producing E.coli outbreak data from the ', 
               a(href = "https://www.cdc.gov/nors/index.html", 
                 "National Outbreak Reporting System at the Centers ", 
-              "for Disease Control and Prevention"), 
+                "for Disease Control and Prevention"), ".",  
               br(), 
               'When using this tool to help with hypothesis ', 
               'generation during an outbreak investigation ', 
@@ -199,8 +201,8 @@ ui <- fluidPage(
               'will perform. Total cases, month of first illness ', 
               "onset, geography, and agent are required fields.", br(), 
               "After entering available information, click ‘Submit’ ", 
-              "and a graph will appear with common sources (animal ", 
-              "contact, meat/poultry, produce, and eggs) and their ", 
+              "and a graph will appear with common sources ", 
+              "and their ", 
               "associated probabilities. The numbers above the bars ", 
               "are the probabilities that your outbreak is associated ", 
               "with each of the sources based on the information ", 
@@ -216,7 +218,7 @@ ui <- fluidPage(
               "investigation, visit ", 
               a(href = "http://www.COFoodSafety.org", 
                 "www.COFoodSafety.org")
-        ), 
+            ), 
         style = 'width:550px;'
                      
             ), 
@@ -240,22 +242,21 @@ server <- function(input, output, session) {
             # isolate so that after submit is pressed, model is not rerun
             # until it is pressed again (prevent dynamic updating)
             isolate({
-                total <- sum(input$AgeUnder1,
-                             input$Age1to4,
-                             input$Age5to9,
-                             input$Age10to19,
-                             input$Age20to49,
-                             input$Age50to74,
-                             input$Age75plus)
+                total <- sum(input$age_under1,
+                             input$age1to4,
+                             input$age5to19,
+                             input$age20to49,
+                             input$age50plus)
+
                 # confirm all required fields are valid
                 validate(
                     need(input$TotalCases > 0,
                          'You must have at least one case'),
-                    need(length(input$Geography) > 0,
+                    need(length(input$geography) > 0,
                          'You must select a geography of expoure'),
-                    need(input$Month != "",
+                    need(input$month != "",
                          'You must choose a month'),
-                    need(input$Agent != "",
+                    need(input$serotype != "",
                          paste0('You must choose an an infectious agent ',
                                 'and a salmonella serotype if the agent is ',
                                 'salmonella')),
@@ -264,153 +265,54 @@ server <- function(input, output, session) {
                                 'can not exceed the total number of cases'))
                 )
                 # process inputs into a dataframe
-                Inputs <- reactiveValuesToList(input)
-
-                # convert misc salmonella serotypes to a format recognizable
-                # to the model
-                Agent <- Inputs$Agent
-                if(Agent %in% NonSpecific) Agent <- 'NonSpecific Sero group'
-                if(Agent %in% PrimaryAnimal) Agent <-
-                    "Primary Animal Sero group"
-                if(Agent %in% PrimaryPlant) Agent <- "Primary Plant Sero group"
-                Inputs$Agent <- Agent
-                Inputs <- data.frame(Inputs)
-                Inputs$Season <- cut(as.numeric(Inputs$Month),
-                                     breaks = c(seq(1, 12, 3), 12),
-                                     include.lowest = T, right = F,
-                                     labels = c('Winter', 'Spring', 'Summer',
-                                                'Fall'))
-                # coverts raw numbers to percentages
-                SexVars <- grep('^Gender', names(Inputs), value = T)
-                AgeVars <- grep('^Age[^n]', names(Inputs), value = T)
-                PercentSex <- paste0('Percent', SexVars)
-                PercentSex <- gsub('Gender', "", PercentSex)
-                PercentAge <- paste0('Percent', AgeVars)
-                Inputs[, PercentSex] <- lapply(Inputs[, SexVars],
-                                               function(x){
-                                                   y <- x/Inputs$TotalCases*100
-                                                   return(y)
-                                               })
-                Inputs[, PercentAge] <- lapply(Inputs[, AgeVars],
-                                               function(x){
-                                                   y <- x/Inputs$TotalCases*100
-                                                   return(y)
-                                               })
-                Inputs$HospPercent2 <- Inputs$Hosp/Inputs$TotalCases
-
-                # keep only predictors in the model
-                Inputs <- subset(Inputs,
-                                 select = names(input_skeleton))
-
-                # paste predictors into the empty data frame so levels/structure
-                # is preserved
-                input_skeleton[1, ] <- Inputs[1, ]
-                pred <- predict(finalchoice, newdata = input_skeleton,
-                                type = 'prob')
-                # convert probabilites from 4 columns to 2 (one with source,
-                # one with probality) for ggplot
-                pred <- gather(pred, 1:4, key = 'source', value = 'prob')
+                inputs <- reactiveValuesToList(input)
+                
+                inputs <- as_tibble(inputs) %>%
+                    mutate_at(vars(starts_with('age')),
+                              ~ ./(total)) %>%
+                    mutate(female = female/(male + female),
+                           attr_source = NA,
+                           month = as.numeric(month)) %>%
+                    rename_at(vars(female, starts_with('age')),
+                              ~ paste0('percent_', .)) %>% 
+                    left_join(sero_groupings)
+               
+                # bake and run
+                data_to_predict <- recipe %>%
+                    bake(inputs)
+                
+                pred <- predict(final_model, newdata = data_to_predict,
+                                type = 'prob') %>%
+                    pivot_longer(everything(), names_to = 'predicted_cat',
+                                 values_to = 'predicted_value') %>% 
+                    mutate(predicted_cat = str_to_title(
+                        str_replace(predicted_cat, 
+                                    pattern = '_', 
+                                    replacement = ' ')
+                        ))
 
                 # plot
-                ggplot(data = pred, aes(x = source, y = prob)) +
-                    geom_col(aes(fill = source)) +
+                ggplot(data = pred, aes(x = predicted_cat,
+                                        y = predicted_value)) +
+                    geom_col(aes(fill = predicted_cat)) +
                     theme_classic() +
-                    labs(x = 'Source',
+                    labs(x = 'Potential Source',
                          y = 'Predicted Probability',
                          title = 'Predicted Probability of Potential Sources') +
                     guides(fill = 'none') +
-                    geom_label(aes(label = round(prob, 2)))
+                    geom_label(aes(label = round(predicted_value, 2))) + 
+                    theme(axis.text.x = element_text(angle = 45, hjust = 1))
             })
         }, width = 800, height = 800, res = 200)
     })
 
     # update salmonella serotype dropdown based on STEC/salmonella selection
     observeEvent(input$.bacteria, {
-        if(input$.bacteria == 1) choice <- list(" " = 'STEC' )
-        if(input$.bacteria == 2) {
-            excl <- which(names(Serogroups) == ' ')
-            choice <- c(list('Choose one' = ""),
-                                            Serogroups[-excl])
-            }
-        updateSelectInput(session, 'Agent', choices = choice)
+        if(input$.bacteria == 1) choice <- list(" " = 'STEC')
+        if(input$.bacteria == 2) choice <- salm_sero
+        updateSelectInput(session, 'serotype', choices = choice)
     })
 
-    # update possibe gender, age amd hospilization cases based on total cases
-    observeEvent(input$TotalCases, {
-        tot <- input$TotalCases
-        updateSliderInput(session, 'GenderMale',
-                          min = 0,
-                          max = tot)
-        updateSliderInput(session, 'GenderFemale',
-                          min = 0,
-                          max = tot - input$GenderMale)
-        updateSliderInput(session, 'GenderSexUnknown',
-                          min = 0,
-                          max = tot - input$GenderMale - input$GenderFemale,
-                          val = tot - input$GenderMale - input$GenderFemale)
-        total <- sum(input$AgeUnder1,
-                     input$Age1to4,
-                     input$Age5to9,
-                     input$Age10to19,
-                     input$Age20to49,
-                     input$Age50to74,
-                     input$Age75plus)
-        updateNumericInput(session, 'AgeUnknown',
-                           max = input$TotalCases - total,
-                           value = input$TotalCases - total)
-        updateSliderInput(session, 'Hosp',
-                          max = input$TotalCases)
-        ### Max doesn't really need to be updated as it doesn't prevent you
-        ### from enteriing a higher value
-        # updateNumericInput(session, 'AgeUnder1',
-        #                    max = input$TotalCases)
-        # updateNumericInput(session, 'Age1to4',
-        #                    max = input$TotalCases)
-        # updateNumericInput(session, 'Age5to9',
-        #                    max = input$TotalCases)
-        # updateNumericInput(session, 'Age10to19',
-        #                    max = input$TotalCases)
-        # updateNumericInput(session, 'Age20to49',
-        #                    max = input$TotalCases)
-        # updateNumericInput(session, 'Age50to74',
-        #                    max = input$TotalCases)
-        # updateNumericInput(session, 'Age75plus',
-        #                    max = input$TotalCases)
-    })
-
-    # update Female and Unknown Gender cases based on Male/Female cases
-    observeEvent(input$GenderMale, {
-        updateSliderInput(session, 'GenderFemale',
-                          min = 0,
-                          max = input$TotalCases - input$GenderMale)
-    })
-
-    observeEvent(input$GenderFemale|input$GenderMale, {
-        val <- input$TotalCases - input$GenderMale - input$GenderFemale
-        updateSliderInput(session, 'GenderSexUnknown',
-                          min = 0,
-                          max = val,
-                          val = val)
-    })
-
-    # update unknown age to be difference of total cases and all age groups
-    observeEvent(input$AgeUnder1|input$Age1to4|
-                     input$Age5to9|input$Age10to19|
-                     input$Age20to49|input$Age50to74|
-                     input$Age75plus, {
-                         total <- sum(input$AgeUnder1,
-                                      input$Age1to4,
-                                      input$Age5to9,
-                                      input$Age10to19,
-                                      input$Age20to49,
-                                      input$Age50to74,
-                                      input$Age75plus)
-                         updateNumericInput(session, 'AgeUnknown',
-                                            max = input$TotalCases - total,
-                                            value = input$TotalCases - total)
-                     })
-
-    
 }
 
 # Run the application 
