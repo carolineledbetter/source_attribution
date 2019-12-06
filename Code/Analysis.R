@@ -11,6 +11,7 @@ library(tidymodels)
 library(kknn)
 library(earth)
 library(ranger)
+library(adabag)
 library(xgboost)
 library(C50)
 library(caret)
@@ -25,7 +26,7 @@ model_set <- analysis %>%
          percent_age50plus, 
          month, 
          geography, 
-         serotype, 
+         serogroup, 
          attr_source) %>% 
   filter(!str_detect(attr_source, 'Other')) %>% 
   mutate(attr_source = str_replace(str_to_lower(attr_source), 
@@ -59,6 +60,7 @@ models <- list()
 blueprint <- as.formula(attr_source ~ .)
 cv_train <- trainControl(method = 'cv', number = 5, 
                          classProbs = TRUE, 
+                         summaryFunction = multiClassSummary, 
                          seeds = lapply(1:nrow(anal_training), 
                                         function(x) 1:20))
 
@@ -193,6 +195,20 @@ models$ranger <- train(
 ggplot(models$ranger)
 models$ranger$bestTune
 
+# AdaBoost.M1 ----
+
+hyper_grid <- expand.grid(mfinal = (1:3)*3, maxdepth = c(1, 3),
+                    coeflearn = c("Breiman", "Freund", "Zhu"))
+set.seed(1119)
+models$adaboost <- train(blueprint, 
+                  data = select(anal_training, -serogroup), 
+                  method = "AdaBoost.M1", 
+                  trControl = cv_train,
+                  metric = 'logLoss', 
+                  tuneGrid = hyper_grid)
+models$adaboost$bestTune
+ggplot(models$adaboost)
+
 
 # Results ----
 mars_results <-
@@ -242,12 +258,13 @@ results_table %>%
   ungroup() %>% 
   mutate(model = factor(model, 
                          levels = c('null', 'mars', 'kknn', 
-                                    'c50', "xgboost", 'ranger')), 
+                                    'c50', "xgboost", 'ranger', 
+                                    'adaboost')), 
          predicted_cat = str_to_title(str_replace(predicted_cat, 
                                                   pattern = '_',
                                                   replacement = ' '))
          ) %>% 
-  filter(y == 1) %>% 
+  filter(y == 1 & model != 'null') %>% 
   ggplot(aes(x = bin_midpoint, 
              y = pct, 
              colour = predicted_cat)) +
@@ -274,7 +291,8 @@ skeleton <- anal_training[0, ]
 save(models, file = 'DataProcessed/model_objects.RData')
 save(final_model, file = 'SourceAttribution/ranger_model_obj.rda')
 save(skeleton, file = 'SourceAttribution/file_skeleton.rda')
-
+save(recipe, file = 'DataProcessed/recipe.rda') 
+save(recipe, file = 'SourceAttribution/recipe.rda')
 
 
 
