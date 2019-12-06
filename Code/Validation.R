@@ -6,6 +6,7 @@
 
 library(CIDAtools)
 library(tidyverse)
+library(recipes)
 library(lubridate)
 
 load('DataRaw/WHIT_20190325_NoWater.RData')
@@ -152,19 +153,14 @@ analysis <-
 # classify serotypes the same as in orginal data
 # if serotype is not in original dataset - set to rare
 
-load(file = "DataProcessed/SeroGroupings.rda")
+load(file = "DataProcessed/sero_groupings.rda")
 
 analysis <- 
   analysis %>% 
-  left_join(uncommon_sero) %>% 
-  mutate(serotype = case_when(
-    serotype %in% rare$serotype ~ 'rare', 
-    !is.na(serogroup) ~ serogroup, 
-    TRUE ~ serotype)) %>% 
-  select(-serogroup)
+  left_join(sero_groupings) 
 
 validate <- analysis %>% 
-  mutate(serotype = str_remove(serotype, ' var.+$'), 
+  mutate(serogroup = str_remove(serogroup, ' var.+$'), 
          attr_source = str_replace(str_to_lower(attr_source), 
                                             pattern = ' ',
                                             replacement = '_')
@@ -177,22 +173,16 @@ validate <- analysis %>%
          percent_age50plus, 
          month, 
          geography, 
-         serotype, 
+         serogroup, 
          attr_source) 
 
-load(file = 'DataProcessed/cleaned_model.RData')
 
-validate %>% filter(!serotype %in% analysis$serotype) %>% count(serotype)
+load(file = 'DataProcessed/recipe.rda')
 
-validate <- validate %>% 
-  mutate(serotype = if_else(serotype %in% analysis$serotype, 
-                            serotype, 'rare')) 
+validate <- recipe %>% 
+  bake(validate)
 
 save(validate, file = 'DataProcessed/validation_data.RData')
-
-# only complete cases
-validate <- validate %>% 
-  drop_na
 
 # load model
 load(file = 'DataProcessed/model_objects.RData')
@@ -203,7 +193,8 @@ predict(models$ranger, validate, type = 'prob') %>%
   pivot_longer(-attr_source, 
                names_to = 'predicted_cat', 
                values_to = 'predicted_value') %>% 
-  mutate(y = if_else(predicted_cat == attr_source, 1, 0), 
+  mutate(attr_source = replace_na(as.character(attr_source), 'other'), 
+         y = if_else(predicted_cat == attr_source, 1, 0), 
          f_ti_minus_o_ti_sq = (predicted_value - y)^2) %>% 
   summarise(brier_score = 1/n()*sum(f_ti_minus_o_ti_sq))
 
@@ -232,7 +223,7 @@ predict(models$ranger, validate, type = 'prob') %>%
              y = pct, 
              colour = predicted_cat)) +
   geom_line(aes(group = predicted_cat)) +
-  geom_point(aes(size = n)) + 
+  geom_point(aes(size = n), position = position_jitter(width = 0.01)) + 
   scale_x_continuous(breaks = seq(0.1, 0.9, 0.2)) + 
   scale_y_continuous(breaks = seq(0.1, 0.9, 0.2)) +
   labs(x = 'Predicted Bin Midpoint', 
@@ -254,7 +245,8 @@ highest_two <- function(...){
 # Accuracy Plot ----
 predict(models$ranger, validate, type = 'prob') %>% 
   bind_cols(select(validate, attr_source)) %>%
-  mutate(id = row_number()) %>% 
+  mutate(id = row_number(), 
+         attr_source = fct_explicit_na(attr_source, na_level = 'Other')) %>% 
   group_by(id, attr_source) %>% 
   nest() %>% 
   transmute(two_highest = map(data, highest_two)) %>% 
