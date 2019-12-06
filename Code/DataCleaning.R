@@ -196,20 +196,29 @@ uncommon_sero <- uncommon_sero %>%
   ) %>% select(serotype, serogroup) %>% 
   distinct()
 
-analysis %>% count(serotype) %>% filter(n <= 3) -> rare
+analysis %>% 
+  count(serotype) %>% 
+  filter(n <= 3) %>% 
+  mutate(serogroup = 'rare') %>% 
+  select(-n) -> rare
 
-save(rare, uncommon_sero, file = "DataProcessed/SeroGroupings.rda")
-save(rare, uncommon_sero, file = "SourceAttribution/SeroGroupings.rda")
+sero_groupings <- analysis %>% 
+  distinct(serotype) %>% 
+  anti_join(uncommon_sero) %>% 
+  anti_join(rare) %>% 
+  mutate(serogroup = serotype) %>% 
+  bind_rows(uncommon_sero, rare) %>% 
+  drop_na()
+
+  
+
+save(sero_groupings, file = "DataProcessed/sero_groupings.rda")
+save(sero_groupings, file = "SourceAttribution/sero_groupings.rda")
+
 
 analysis <- 
   analysis %>% 
-  left_join(uncommon_sero) %>% 
-  add_count(serotype) %>% 
-  mutate(serotype = case_when(
-    n <= 3 ~ 'rare', 
-    !is.na(serogroup) ~ serogroup, 
-    TRUE ~ serotype)) %>% 
-  select(-serogroup, -n)
+  left_join(sero_groupings) 
 
 analysis %>% filter_all(any_vars(is.na(.))) %>% 
   count(year, name = 'missing_n') -> tmp
