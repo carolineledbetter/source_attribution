@@ -12,6 +12,10 @@ load('DataRaw/WHIT_20180502_NoWater.RData')
 NORSMain %>% glimpse()
 EforsAge %>% glimpse
 
+# Merge EFORS Age ----
+# prior to 2009 it was EFORS not NORS which had different age categories
+# we want to include this data
+
 EforsAge <- 
   EforsAge %>%
   select(-AgeUnknown) %>% 
@@ -19,6 +23,9 @@ EforsAge <-
   rename(AgeUnder1 = AgeLessThan1,
          Age50plus  = AgeGreaterThanEqual50) %>%
   rename_at(vars(starts_with('Age')), ~ paste0('Percent', .)) 
+
+# save Ns for report
+n_start <- nrow(NORSMain)
 
 NORSMain <- 
   NORSMain %>% as_tibble() %>% 
@@ -34,6 +41,7 @@ NORSMain <-
   group_by(CDCID) %>%
   summarise_all(~{coalesce(.x[1], .x[2])})
 
+# Derived Predictors ----
 NORSMain %>% as_tibble() %>%  
   mutate(
     outbreak_length = (LastExposure - InitialExposure)/ddays(), 
@@ -125,6 +133,22 @@ IFSAC <- `__IFSACCommodityData`
 # Only include outbreaks with an identifiable single source
 IFSAC %>% count(IFSACLevel1, IFSACLevel2, IFSACLevel3) %>% view
 
+n_ifsac <- IFSAC %>% 
+  filter(!IFSACLevel1 %in% c("Aquatic Animals", 
+                             "Land Animals", 
+                             "Other", 
+                             "Plant")
+         ) %>% 
+  mutate(cdcid = as.character(CDCID)) %>% 
+  anti_join(filter(NORSMain, primary_mode != 'Food')) %>% 
+  count(IFSACLevel1)
+
+n_not_food <- NORSMain %>% 
+  filter(!primary_mode %in% c('Food', 'Animal Contact') ) %>% 
+  mutate(primary_mode = fct_infreq(primary_mode), 
+         primary_mode = fct_rev(primary_mode)) %>% 
+  count(primary_mode)
+
 analysis <- 
   IFSAC %>% 
   filter(IFSACLevel1 %in% c("Aquatic Animals", 
@@ -152,7 +176,8 @@ analysis <-
 # save -------------------------------------------------------------------------
 analysis <- 
   NORSMain %>% select(cdcid, starts_with("percent"), 
-                      total_cases, month, hosp_percent, geography, 
+                      total_cases, month, hosp_percent, geography, season, 
+                      death_percent, outbreak_length, 
                       primary_mode, year) %>% 
   left_join(agent) %>% 
   right_join(x = analysis, y = .) %>% 
@@ -160,7 +185,9 @@ analysis <-
     primary_mode == 'Animal Contact' ~ 'Animal Contact', 
     TRUE ~ food_source)) %>% 
   filter(!is.na(attr_source)) %>% 
-  select(-food_source, -primary_mode) 
+  select(-food_source, -primary_mode) %>% as_tibble()
+
+n_animal_contact <- nrow(filter(NORSMain, primary_mode == 'Animal Contact') )
 
 analysis %>% 
   select(serotype, attr_source) %>% 
@@ -230,4 +257,5 @@ analysis %>%
   summarise_all(~ sum(is.na(.))/n()) -> missing_table
 
 save(analysis, file = 'DataProcessed/cleaned_model.RData')
+save(list = ls(pattern = '^n_'), file = 'DataProcessed/step_numbers.RData')
 
