@@ -17,6 +17,7 @@ library(ranger) # necessary to predict with algorithm we chose
 library(tidyverse)
 library(recipes) # used recipe to bake input
 library(caret)
+library(e1071)
 
 # load prediction algortithm
 load(file = 'ranger_model_obj.rda')
@@ -143,11 +144,11 @@ ui <- fluidPage(
             wellPanel(
                 numericInput('male', 'Male', 
                                   min = 0, 
-                                  max = 0, 
+                                  max = Inf, 
                                   value = 0),
                 numericInput('female', 'Female', 
                                   min = 0, 
-                                  max = 0, 
+                                  max = Inf, 
                                   value = 0)
                       ,
                 numericInput('age_under1', 'Under 1 Year', 
