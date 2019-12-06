@@ -136,8 +136,7 @@ ui <- fluidPage(
                                     br(), '
                                     you must select a serotype. Other, ', br(), 
                                     'and Unknown are options.')),
-                            choices = c('Choose STEC or Salmonella First' = "")), 
-                actionButton('.cal_graph', 'Calibration Graph'), 
+                            choices = c('Choose STEC or Salmonella First' = "")),
                 style = "width:350px;"
                 ), 
             # Right side of Sidebar Age inputs and submit button
