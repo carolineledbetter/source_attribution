@@ -3,6 +3,7 @@ geometry: margin=1in
 output:
   html_document:
     df_print: paged
+    keep_md: yes
   pdf_document:
     fig_caption: yes
   word_document: default
@@ -490,7 +491,7 @@ predict(models$ranger, validate, type = 'prob') %>%
   scale_y_continuous(breaks = seq(0.1, 0.9, 0.2)) +
   labs(x = 'Predicted Bin Midpoint', 
        y = 'Observed Event Proportion', 
-       title = 'Calibration Plots For All Models', 
+       title = 'Calibration Plot For Validation Data', 
        colour = 'Outbreak Source') + 
   geom_abline(slope = 1) + 
   theme_classic()
