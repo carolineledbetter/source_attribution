@@ -22,6 +22,8 @@ library(kableExtra)
 
 load(file = 'DataProcessed/cleaned_model.RData')
 load(file = 'DataProcessed/step_numbers.RData')
+load(file = 'DataProcessed/brier_scores.rda')
+load(file = 'DataProcessed/results_table.rda')
 str_pad_max <- function(string, 
                         side =  c("right", 'left', "both"), 
                         pad = " "){
@@ -53,6 +55,7 @@ n_final <- analysis %>%
                                    pattern = ' ',
                                    replacement = '_')) %>% nrowP(.)
 ```
+
 **Project:**`r CIDAtools::ProjectName()`
 **PI:**`r CIDAtools::ProjectPI()`  
 **Prepared By:**`r CIDAtools::ProjectAnalyst()`  
@@ -218,9 +221,36 @@ Scores (a measure of the difference in the predicted probability and the actual
 event). All analysis was done in `r R.Version()$version.string`. Datacleaning 
 was done using the tidyverse. RSample and
 Recipes (part of tidymodels) were used for data splitting, imputation and 
-preprocessing. Parsnip was used for the null model. 
+preprocessing. Parsnip was used for the null model. The r 
 The Caret Package v(`r packageVersion('caret')` was used for tuning and test 
-set prediction. 
+set prediction. The final model was selected based on the brier score of 
+the test set. The brier score is a measurement of the accuracy of probablilitic
+predictions of mutually exclusive outcomes. It is the sum of the differences 
+between the predicted probability and the observed outcome (equal to zero if 
+the outcome did not occur, one if it did) squared summed across all outbreaks. 
+(Fig 2)
+
+```{r plot_bs, fig.cap = 'Figure 2. Graphical Representation of Brier Score for One Outbreak'}
+filter(results_table, id == 1) %>% 
+  mutate(predicted_cat = str_to_title(str_replace(predicted_cat, 
+                                                  pattern = '_', 
+                                                  replacement = ' ')
+  ) 
+  ) %>% 
+  ggplot(aes(x = predicted_cat, colour = predicted_cat)) + 
+  # geom_point(aes(y = predicted_value)) + 
+  # geom_point(aes(y = y)) + 
+  geom_linerange(aes(ymin = predicted_value, ymax = y)) + 
+  geom_label(aes(y = predicted_value), label = 'Predicted') + 
+  geom_label(aes(y = y), label = 'Observed') +
+  theme_classic() + 
+  guides(color = 'none') + 
+  labs(y = 'Probability', 
+       x = 'Source Category', 
+       title = 'Brier Score Represented for One Outbreak')
+  
+
+```
 
 # Results  
 There were `r format(n_start, big.mark = ',', trim = T)` non-waterborne 
@@ -263,7 +293,8 @@ analysis %>%  mutate(attr_source = fct_other(attr_source,
                            'percent_age20to49' = "Percent 20yr to 49yr", 
                            'percent_age50plus' = "Percent 50yr or older", 
                            'hosp_percent' = "Percent Hospitalized", 
-                           'outbreak_length' = "Length (in days) of Oubreak")
+                           'outbreak_length' = "Length (in days) of Oubreak"), 
+  value = str_to_title(str_replace(value, '_', ' '))
   ) %>% 
   select(-type) %>% 
   rename(` ` = variable, ` ` = value) %>% 
@@ -272,8 +303,6 @@ analysis %>%  mutate(attr_source = fct_other(attr_source,
   kable_styling() %>% 
   collapse_rows(1)
     
-  
-
 ```
 
 

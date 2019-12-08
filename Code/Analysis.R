@@ -231,17 +231,10 @@ generate_result <- function(pred_model){
 results <- map_dfr(models, generate_result, .id = 'model') %>% 
   bind_rows(mars_results)
 
-generate_result_table <- function(result) {
-  result %>% 
-    pivot_longer(starts_with('.pred_'), 
-                 names_to = 'predicted_cat', 
-                 values_to = 'predicted_value') %>% 
-    mutate(predicted_cat = str_remove(predicted_cat, '\\.pred_'), 
-           y = if_else(predicted_cat == attr_source, 1, 0)) 
-}
 
 results_table <- results %>% 
-  pivot_longer(-c(attr_source, model), 
+  mutate(id = row_number()) %>% 
+  pivot_longer(-c(attr_source, model, id), 
                names_to = 'predicted_cat', 
                values_to = 'predicted_value') %>% 
   mutate(y = if_else(predicted_cat == attr_source, 1, 0)) 
@@ -293,6 +286,8 @@ save(final_model, file = 'SourceAttribution/ranger_model_obj.rda')
 save(skeleton, file = 'SourceAttribution/file_skeleton.rda')
 save(recipe, file = 'DataProcessed/recipe.rda') 
 save(recipe, file = 'SourceAttribution/recipe.rda')
+save(brier_scores, file = 'DataProcessed/brier_scores.rda')
+save(results_table, file = 'DataProcessed/results_table.rda')
 
 
 
