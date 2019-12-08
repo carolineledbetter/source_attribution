@@ -63,18 +63,19 @@ n_final <- analysis %>%
   
 # Methods  
 ## Data
-Data were collected from 1998-2016 from NORS.
-
-Foodborne outbreaks were grouped into categories based on the food source as 
+Data were collected from 1998-2016 from NORS. Food-borne outbreaks were 
+grouped into categories based on the food source as 
 identified in NORS. Outbreaks missing IFSAC information, those caused by 
-multiple sources, unclassifiable outbreaks, outbreaks of undetermined source 
-and outbreaks from a source other than animal or plant were removed. Foodbourne 
+multiple sources, unclassified outbreaks, outbreaks of undetermined source 
+and outbreaks from a source other than animal or plant were removed. Food-borne 
 outbreak caused by dairy, eggs, fruits, meat, poultry, or vegetables were 
 included.
-Foodbourne outbreaks caused by other sources were excluded. 
-Non foodbourne outbreaks caused by animal contact were included. (Fig 1)  
-The final analysis data was split into training (75%) and test(25%) statified 
-by outbreak source to ensure balance. 
+Food-borne outbreaks caused by other sources were excluded. 
+Non food-borne outbreaks caused by animal contact were included. (Fig 1)  
+The final analysis data was split into training (75%) and test (25%) 
+stratified 
+by outbreak source to ensure balance. A validation data set consisting of 
+2017 outbreak data was used to evaluate the final selected model. 
 
 ```{r flow_chart, fig.cap = paste0('Fig.', flow_chart, ' Cohort Flow Chart'), fig.width = 10, fig.height = 6}
 # create a flow chart to show inclusion/exclusion criteria
@@ -147,7 +148,7 @@ textplain(c(0.78, mid2), height = y_3,
          adj = c(0, 0.5))
 textrect(elpos[7, -2], radx = rad_x, rady = y_3 + rad_y)
 textplain(c(0.01, bottom), height = y_3 + rad_y, 
-         lab = c("Included NORS Outbreaks:", 
+         lab = c("Included Outbreaks:", 
                  paste(filter(n_outbreaks, 
                               !str_detect(attr_source, 'Other') )$attr_source)), 
          cex = cex_fxr, 
@@ -164,7 +165,7 @@ textplain(c(0.3, bottom), height = y_3 + rad_y,
          adj = c(0, 0.5))
 textrect(elpos[8, -2], radx = rad_x - 0.05, rady = y_2)
 textplain(c(0.58, bottom), height = y_2, 
-         lab = c("Excluded NORS Outbreaks:", 
+         lab = c("Excluded Foodborne Outbreaks:", 
                  paste(filter(n_outbreaks, 
                               str_detect(attr_source, 'Other') )$attr_source)), 
          cex = cex_fxr, 
@@ -187,16 +188,16 @@ textplain(c(0.78, bottom), height = y_2,
 The month of the first illness, the geography of the outbreak (multi state, 
 multi county, single county), the etiology of the outbreak (STEC or Salmonella 
 serotype) and the gender and ages of cases were used as predictors. Missing 
-predictors were imputed using k-nearest neighbors and the training data. 
+predictors were imputed using k-nearest neighbors using the training data. 
 
 *Gender and Age*  
-The number of female cases as a proption of cases whose gender was known was 
+The number of female cases as a proportion of cases whose gender was known was 
 used for predicting. If gender was unknown for all cases, the predictor was 
 missing. The number of cases for each age group (under 1, 1 to 4, 5 to 19, 
-20 to 49, 50 plus) as a propotion of cases whose age was known was used for 
+20 to 49, 50 plus) as a proportion of cases whose age was known was used for 
 predicting. If age was unknown for all cases, the age predictors were missing. 
 
-*Salmonella Serotypes*
+*Salmonella Serotypes*  
 Only serotypes with ten or more outbreaks were included as is. Salmonella 
 serotypes 
 with less than ten outbreaks but more than three were clustered into three 
@@ -218,17 +219,29 @@ A non-informative model that uses no information from predictors was also
 generated for comparison purposes. 
 The final model was chosen based on Brier 
 Scores (a measure of the difference in the predicted probability and the actual 
-event). All analysis was done in `r R.Version()$version.string`. Datacleaning 
-was done using the tidyverse. RSample and
-Recipes (part of tidymodels) were used for data splitting, imputation and 
-preprocessing. Parsnip was used for the null model. The r 
-The Caret Package v(`r packageVersion('caret')` was used for tuning and test 
+event). All analysis was done in `r R.Version()$version.string`. Data cleaning 
+was done using the tidyverse. rsample v(`r packageVersion('rsample')`) and
+recipes v(`r packageVersion('recipes')`) 
+(part of tidymodels) were used for data splitting, imputation and 
+preprocessing. The parsnip v(`r packageVersion('parsnip')`)
+(null model), adabag v(`r packageVersion('adabag')`) (Adaboost.M1), 
+C50 v(`r packageVersion('c50')`) (CART), 
+kknn v(`r packageVersion('kknn')`) (weighted knn),
+xgboost v(`r packageVersion('xgboost')`) (boosted trees), 
+and ranger v(`r packageVersion('ranger')`) (random forest) 
+packages were used. 
+The caret Package v(`r packageVersion('caret')`) was used for tuning and test 
 set prediction. The final model was selected based on the brier score of 
-the test set. The brier score is a measurement of the accuracy of probablilitic
-predictions of mutually exclusive outcomes. It is the sum of the differences 
+the test set. The brier score is a measurement of the accuracy of probabilistic
+predictions of mutually exclusive outcomes. It is the mean of the square of the 
+differences 
 between the predicted probability and the observed outcome (equal to zero if 
-the outcome did not occur, one if it did) squared summed across all outbreaks. 
-(Fig 2)
+the outcome did not occur, one if it did). 
+(Fig 2) $$BS = \frac{1}{N} \sum^{N}_{t=1} \sum^{N}_{i=1} (f_{ti} - o_{ti})^2$$  
+where $f$ is the predicted probability of the category for an event, 
+$o$ is the observed outcome for a category for an event, $R$ is number of
+possible 
+categories and $N$ is the total number of observed outcomes. 
 
 ```{r plot_bs, fig.cap = 'Figure 2. Graphical Representation of Brier Score for One Outbreak'}
 filter(results_table, id == 1) %>% 
@@ -256,13 +269,22 @@ filter(results_table, id == 1) %>%
 There were `r format(n_start, big.mark = ',', trim = T)` non-waterborne 
 outbreaks in the NORS database. 
 `r format(sum(n_not_food$n), big.mark = ',', trim = T)` outbreaks that were not
-foodborne or animal contact were excluded. 
-`r format(sum(n_ifsac$n), big.mark = ',', trim = T)` foodborne outbreaks were 
+food-borne or animal contact were excluded. 
+`r format(sum(n_ifsac$n), big.mark = ',', trim = T)` food-borne outbreaks were 
 excluded because they did not have a single identifiable food source. 
 The final data set included `r n_final` outbreaks that were identified as 
 dairy, eggs, fruits, meat, poultry, vegetables and animal contact.
 
-Characteristics of outbreaks in the analysis are given in table 1. 
+Characteristics of outbreaks in the analysis are given in table 1. Fruit 
+and vegetable outbreaks had the highest average percentage of females, 
+meat and dairy had the lowest. Animal contact outbreaks had much higher 
+average proportions of children than all other outbreaks. Egg meat and 
+dairy outbreaks were more common in the summer and much less common in the
+winter, animal contacts occurred most in winter and spring. Most outbreaks 
+are single county 
+(`r round(sum(analysis$geography == 'single_county', na.rm = T)/sum(!is.na(analysis$geography))*100, 0)`%
+overall), but egg and poultry are particularly likely to be single county. Fruit 
+and vegetable outbreaks have the highest average total cases. 
 
 
 ```{r table1}
@@ -293,29 +315,208 @@ analysis %>%  mutate(attr_source = fct_other(attr_source,
                            'percent_age20to49' = "Percent 20yr to 49yr", 
                            'percent_age50plus' = "Percent 50yr or older", 
                            'hosp_percent' = "Percent Hospitalized", 
-                           'outbreak_length' = "Length (in days) of Oubreak"), 
+                           'outbreak_length' = "Length (in days) of Outbreak"), 
   value = str_to_title(str_replace(value, '_', ' '))
   ) %>% 
   select(-type) %>% 
   rename(` ` = variable, ` ` = value) %>% 
   kable(escape = F, 
-        caption = 'Table 1. Outbreak Charactersics by Source') %>% 
+        caption = 'Table 1. Outbreak Characteristics by Source') %>% 
   kable_styling() %>% 
   collapse_rows(1)
     
 ```
 
+Final selected tuning parameters are shown in table 2. 
+All models performed better than the null model on the test set (table 3). 
+Calibration curves are shown in figure 3. 
 
-
-
-```{r brierscore, eval = F}
-
+```{r tuning}
+tribble(
+  ~Model, ~Parameters, 
+  'Random Forest', "mtry = 2; split rule = gini; min node size = 1", 
+  'Weighted k-nearest neighbors', "k = 44", 
+  'Multivariate Adaptive Regression Spline', "degree = 2; nprune = 18", 
+  'Boosted Trees', "eta = 0.3; max depth = 6; gamma = 0", 
+  'CART', "trials = 20; model type = 'rules'; no winnowing", 
+  'Adaboost.M1', "mfinal = 9, max depth = 1, coefficient type = 'Zhu'"
+) %>% kable(caption = 'Table 2. Tuning Parameters') %>% 
+  kable_styling(full_width = F)
 ```
 
 
 
+```{r brierscore}
+brier_scores %>% 
+  mutate(model = recode(model, 
+                        ranger   = 'Random Forest', 
+                        kknn     = 'Weighted k-Nearest Neighbors',
+                        mars     = 'Multivariate Adaptive Regression Spline', 
+                        xgboost  = 'Boosted Trees', 
+                        c50      = 'CART', 
+                        adaboost = 'Adaboost.M1', 
+                        null     = 'Null') 
+         )%>% 
+                        arrange(brier_score) %>% 
+  rename(Model = model, `Brier Score` = brier_score) %>% 
+  kable(caption = 'Table 3. Brier Scores for each model', 
+        digits = 3) %>% 
+  kable_styling(full_width = F)
+```
 
-# Discussion
+```{r calibration_curves, fig.width = 10, fig.height = 6}
+results_table %>% 
+  mutate(bin_midpoint = cut(predicted_value, 
+                            breaks = seq(0, 1, 0.2), 
+                            include.lowest = T, 
+                            labels = seq(0.1, 0.9, 0.2)), 
+         bin_midpoint = as.numeric(as.character(bin_midpoint)), 
+         model = recode_factor(
+           model, 
+           ranger   = 'Random Forest', 
+           kknn     = 'Weighted k-Nearest Neighbors',
+           mars     = 'Multivariate Adaptive Regression Spline', 
+           xgboost  = 'Boosted Trees', 
+           c50      = 'CART', 
+           adaboost = 'Adaboost.M1', 
+           null     = 'Null'), 
+         predicted_cat = str_to_title(str_replace(predicted_cat, 
+                                                  pattern = '_',
+                                                  replacement = ' ')) 
+         ) %>% 
+  group_by(model, predicted_cat, bin_midpoint) %>% 
+  count(y) %>% 
+  mutate(pct = n/sum(n)) %>% 
+  ungroup() %>% 
+  filter(y == 1 & model != 'Null') %>% 
+  ggplot(aes(x = bin_midpoint, 
+             y = pct, 
+             colour = predicted_cat)) +
+  geom_line(aes(group = predicted_cat)) +
+  geom_point(aes(size = n)) + 
+  scale_x_continuous(breaks = seq(0.1, 0.9, 0.2)) + 
+  scale_y_continuous(breaks = seq(0.1, 0.9, 0.2)) +
+  labs(x = 'Bin Midpoint', 
+       y = 'Observed Event Proportion', 
+       title = 'Calibration Plots For All Models', 
+       colour = 'Outbreak Source', 
+       size = 'N') + 
+  geom_abline(slope = 1) + 
+  theme_classic() + 
+  facet_wrap(vars(model))
+```
+
+```{r validation}
+# load model and data
+load(file = 'DataProcessed/model_objects.RData')
+load(file = 'DataProcessed/validation_data.RData')
+# Brier Score ----
+predict(models$ranger, validate, type = 'prob') %>% 
+  bind_cols(select(validate, attr_source)) %>% 
+  pivot_longer(-attr_source, 
+               names_to = 'predicted_cat', 
+               values_to = 'predicted_value') %>% 
+  mutate(attr_source = replace_na(as.character(attr_source), 'other'), 
+         y = if_else(predicted_cat == attr_source, 1, 0), 
+         f_ti_minus_o_ti_sq = (predicted_value - y)^2) %>% 
+  summarise(brier_score = 1/n()*sum(f_ti_minus_o_ti_sq)) -> val_bs
+```
+
+```{r val_accuracy}
+highest_two <- function(...){
+  row <- list(...)[[1]]
+  values <- unlist(row)
+  ordered <- names(sort(values, decreasing = TRUE))
+  return(paste(ordered[1:2], collapse = '.'))
+}
+
+# Accuracy Plot ----
+accuracy <- 
+  predict(models$ranger, validate, type = 'prob') %>% 
+  bind_cols(select(validate, attr_source)) %>%
+  mutate(id = row_number(), 
+         attr_source = fct_explicit_na(attr_source, na_level = 'Other')) %>% 
+  group_by(id, attr_source) %>% 
+  nest() %>% 
+  transmute(two_highest = map(data, highest_two)) %>% 
+  unnest(two_highest) %>% 
+  separate(two_highest, into = c('highest', 'second_highest'), sep = '\\.') %>% 
+  mutate(accurate = attr_source %in% c(highest, second_highest)) %>% 
+  ungroup()
+accuracy %>% summarise(n = sum(accurate), pct = sum(accurate)/n()) -> overall
+```
+
+*Validation*  
+The validation data set consisted of `r nrowP(validate)` food-borne and 
+animal contact outbreaks including 
+`r nrowP(filter(validate, is.na(attr_source)))` outbreaks whose sources was not 
+one of our predicted categories. These were not excluded from evaluation 
+metrics to more accurately reflect real world performance. The selected 
+random forest model had a brier score of 
+`r round(val_bs$brier_score, 3)`. 
+The calibration plot is shown in figure 4. Fruit and animal contact 
+outbreaks were the most over-predicted. Dairy, and egg outbreaks
+were the most under-predicted. 
+
+
+```{r validation_calplot}
+# Calibration Plot ----
+predict(models$ranger, validate, type = 'prob') %>% 
+  bind_cols(select(validate, attr_source)) %>% 
+  pivot_longer(-attr_source, 
+               names_to = 'predicted_cat', 
+               values_to = 'predicted_value') %>% 
+  mutate(y = if_else(predicted_cat == attr_source, 1, 0), 
+       bin_midpoint = cut(predicted_value, 
+                          breaks = seq(0, 1, 0.2), 
+                          include.lowest = T, 
+                          labels = seq(0.1, 0.9, 0.2)), 
+       bin_midpoint = as.numeric(as.character(bin_midpoint))) %>% 
+  group_by(predicted_cat, bin_midpoint) %>% 
+  count(y) %>% 
+  mutate(pct = n/sum(n)) %>% 
+  ungroup() %>% 
+  mutate(predicted_cat = str_to_title(str_replace(predicted_cat, 
+                                                  pattern = '_',
+                                                  replacement = ' '))
+  ) %>% 
+  filter(y == 1) %>% 
+  ggplot(aes(x = bin_midpoint, 
+             y = pct, 
+             colour = predicted_cat)) +
+  geom_line(aes(group = predicted_cat)) +
+  geom_point(aes(size = n), position = position_jitter(width = 0.01)) + 
+  scale_x_continuous(breaks = seq(0.1, 0.9, 0.2)) + 
+  scale_y_continuous(breaks = seq(0.1, 0.9, 0.2)) +
+  labs(x = 'Predicted Bin Midpoint', 
+       y = 'Observed Event Proportion', 
+       title = 'Calibration Plots For All Models', 
+       colour = 'Outbreak Source') + 
+  geom_abline(slope = 1) + 
+  theme_classic()
+```
+
+Overall, the correct outbreak 
+was in the top two predicted for `r overall$n` 
+(`r round(overall$pct*100, 0)`%) of outbreaks. The percentage of outbreaks
+where the correct category was in the top two predictions by actual 
+outbreak source is shown in figure 5. 
+
+```{r accuracy_graph}
+accuracy %>% 
+  group_by(attr_source) %>% 
+  count(accurate) %>% 
+  mutate(pct = n/sum(n), 
+         total_n = sum(n)) %>% 
+  filter(accurate) %>% 
+  ggplot(aes(y = pct, str_to_title(str_replace(attr_source, '_', ' ')))) + 
+  geom_col(aes(fill = str_to_title(str_replace(attr_source, '_', ' ')))) + 
+  geom_label(aes(label = glue::glue("{n}/{total_n}"))) + 
+  guides(fill = 'none') + 
+  labs(x = 'Actual Attributed Source', 
+       y = 'Percent of Outbreaks Where Actual Source was in Top Two') + 
+  theme_classic()
+```
 
 
 

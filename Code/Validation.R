@@ -232,7 +232,6 @@ predict(models$ranger, validate, type = 'prob') %>%
        colour = 'Outbreak Source') + 
   geom_abline(slope = 1) + 
   theme_classic()
-ggsave('Reports/Figures/validation_calibration_plot.png')
 ggsave('SourceAttribution/www/validation_calibration_plot.png')
 
 highest_two <- function(...){
@@ -263,7 +262,6 @@ predict(models$ranger, validate, type = 'prob') %>%
   labs(x = 'Actual Attributed Source', 
        y = 'Percent of Outbreaks Where Actual Source was in Top Two') + 
   theme_classic()
-ggsave('Reports/Figures/predicted_top_two.png')
 ggsave('SourceAttribution/www/predicted_top_two.png')
 
 
