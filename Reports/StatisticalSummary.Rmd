@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r global_options, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, dpi = 300)
 knitr::opts_knit$set(root.dir = '../')
 ```
 
@@ -366,6 +366,10 @@ brier_scores %>%
 ```
 
 ```{r calibration_curves, fig.width = 10, fig.height = 6}
+xy_line <- tibble(x = seq(0, 1, 0.2), 
+                  y = seq(0, 1, 0.2))
+upper_poly <- tibble(x = c(0, 0, 1), 
+                     y = c(0, 1, 1))
 results_table %>% 
   mutate(bin_midpoint = cut(predicted_value, 
                             breaks = seq(0, 1, 0.2), 
@@ -393,17 +397,27 @@ results_table %>%
   ggplot(aes(x = bin_midpoint, 
              y = pct, 
              colour = predicted_cat)) +
+  geom_area(data = xy_line, aes(x = x, y = y), 
+            inherit.aes = FALSE, 
+            fill = 'blue', alpha = 0.2) +
+  geom_polygon(data = upper_poly, aes(x = x, y = y), 
+               inherit.aes = F, 
+               fill = 'red', alpha = 0.2) + 
   geom_line(aes(group = predicted_cat)) +
   geom_point(aes(size = n)) + 
+  geom_label(aes(x = 0, y = 1, label = 'Under-predicted'), 
+             colour = 'red', hjust = 0, vjust = 1) +
+  geom_label(aes(x = 1, y = 0, label = 'Over-predicted'), 
+             colour = 'blue', hjust = 1, vjust = 0) +
   scale_x_continuous(breaks = seq(0.1, 0.9, 0.2)) + 
   scale_y_continuous(breaks = seq(0.1, 0.9, 0.2)) +
-  labs(x = 'Bin Midpoint', 
+  labs(x = 'Predicted Bin Midpoint', 
        y = 'Observed Event Proportion', 
        title = 'Calibration Plots For All Models', 
        colour = 'Outbreak Source', 
        size = 'N') + 
   geom_abline(slope = 1) + 
-  theme_classic() + 
+  theme_classic() +  
   facet_wrap(vars(model))
 ```
 
@@ -456,8 +470,8 @@ metrics to more accurately reflect real world performance. The selected
 random forest model had a brier score of 
 `r round(val_bs$brier_score, 3)`. 
 The calibration plot is shown in figure 4. Fruit and animal contact 
-outbreaks were the most over-predicted. Dairy, and egg outbreaks
-were the most under-predicted. 
+outbreaks were the most under-predicted. Dairy, meat and egg outbreaks
+were the most over-predicted. 
 
 
 ```{r validation_calplot}
@@ -484,7 +498,17 @@ predict(models$ranger, validate, type = 'prob') %>%
   filter(y == 1) %>% 
   ggplot(aes(x = bin_midpoint, 
              y = pct, 
-             colour = predicted_cat)) +
+             colour = predicted_cat)) + 
+  geom_area(data = xy_line, aes(x = x, y = y), 
+            inherit.aes = FALSE, 
+            fill = 'blue', alpha = 0.2) +
+  geom_polygon(data = upper_poly, aes(x = x, y = y), 
+               inherit.aes = F, 
+               fill = 'red', alpha = 0.2) + 
+  geom_label(aes(x = 0, y = 1, label = 'Under-predicted'), 
+             colour = 'red', hjust = 0, vjust = 1) +
+  geom_label(aes(x = 1, y = 0, label = 'Over-predicted'), 
+             colour = 'blue', hjust = 1, vjust = 0) +
   geom_line(aes(group = predicted_cat)) +
   geom_point(aes(size = n), position = position_jitter(width = 0.01)) + 
   scale_x_continuous(breaks = seq(0.1, 0.9, 0.2)) + 

@@ -16,7 +16,7 @@ output:
 **Project:**P1330White
 **PI:**Alice White  
 **Prepared By:**Caroline Ledbetter  
-**Date:** 12/08/2019  
+**Date:** 12/10/2019  
   
 # Methods  
 ## Data
@@ -75,7 +75,7 @@ event). All analysis was done in R version 3.6.1 (2019-07-05). Data cleaning
 was done using the tidyverse. rsample v(0.0.5) and
 recipes v(0.1.7) 
 (part of tidymodels) were used for data splitting, imputation and 
-preprocessing. The parsnip v(0.0.4)
+preprocessing. The parsnip v(0.0.3.1)
 (null model), adabag v(4.2) (Adaboost.M1), 
 C50 v(0.1.2) (CART), 
 kknn v(1.3.1) (weighted knn),
@@ -452,8 +452,8 @@ metrics to more accurately reflect real world performance. The selected
 random forest model had a brier score of 
 0.098. 
 The calibration plot is shown in figure 4. Fruit and animal contact 
-outbreaks were the most over-predicted. Dairy, and egg outbreaks
-were the most under-predicted. 
+outbreaks were the most under-predicted. Dairy, meat and egg outbreaks
+were the most over-predicted. 
 
 
 ![](StatisticalSummary_files/figure-html/validation_calplot-1.png)<!-- -->
