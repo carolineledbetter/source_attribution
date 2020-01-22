@@ -1,6 +1,6 @@
 # P1330 White  
 **PI:** Alice White  
-**Analysts:** David Weitzencamp, PhD Caroline Ledbetter, MPH  
+**Analysts:** Caroline Ledbetter, MPH  
 **Project Start Date:** May 16, 2018  
 
 ### Details about the folders:  
