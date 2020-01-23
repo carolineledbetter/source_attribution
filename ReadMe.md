@@ -1,4 +1,4 @@
-# P1330 White  
+# Food Source Attribution (P1330 White)  
 **PI:** Alice White  
 **Analysts:** Caroline Ledbetter, MPH  
 **Project Start Date:** May 16, 2018  
