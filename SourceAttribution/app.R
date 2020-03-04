@@ -269,8 +269,8 @@ server <- function(input, output, session) {
                 
                 inputs <- as_tibble(inputs) %>%
                     mutate_at(vars(starts_with('age')),
-                              ~ ./(total)) %>%
-                    mutate(female = female/(male + female),
+                              ~ ./(total)*100) %>%
+                    mutate(female = female/(male + female)*100,
                            attr_source = NA,
                            month = as.numeric(month)) %>%
                     rename_at(vars(female, starts_with('age')),
