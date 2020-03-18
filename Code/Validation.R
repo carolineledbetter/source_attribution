@@ -164,7 +164,11 @@ validate <- analysis %>%
          attr_source = str_replace(str_to_lower(attr_source), 
                                             pattern = ' ',
                                             replacement = '_')
-         ) %>% 
+         )
+save(validate, file = 'DataProcessed/val_pre.rda')
+
+validate <- 
+  validate %>% 
   select(percent_female, 
          percent_age_under1, 
          percent_age1to4, 

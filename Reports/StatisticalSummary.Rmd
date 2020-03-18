@@ -293,8 +293,8 @@ analysis %>%  mutate(attr_source = fct_other(attr_source,
                                             drop = c('Other', 
                                                      'Meat-Poultry Other', 
                                                      'Produce Other'))) %>% 
-  desc_table(.,
-             c(season, geography, total_cases, 
+  desc_table(data = .,
+             c(genus, season, geography, total_cases, 
                percent_male:percent_age50plus, 
                hosp_percent, outbreak_length), 
              attr_source) %>% 
@@ -305,6 +305,7 @@ analysis %>%  mutate(attr_source = fct_other(attr_source,
     type == 'mean_sd' ~ 'Mean (SD)', 
   ), 
   variable = recode_factor(variable, 
+                           genus = 'Agent', 
                            "season" = "Season", 
                            'geography' = "Geography", 
                            'total_cases' = "Total Cases", 
@@ -320,7 +321,7 @@ analysis %>%  mutate(attr_source = fct_other(attr_source,
   value = str_to_title(str_replace(value, '_', ' '))
   ) %>% 
   select(-type) %>% 
-  rename(` ` = variable, ` ` = value) %>% 
+  rename(`  ` = variable, ` ` = value) %>% 
   kable(escape = F, 
         caption = 'Table 1. Outbreak Characteristics by Source') %>% 
   kable_styling() %>% 
@@ -543,6 +544,112 @@ accuracy %>%
   theme_classic()
 ```
 
+
+```{r serotypes}
+analysis %>% 
+  mutate(
+    serogroup = case_when(
+      serogroup == 'rare' ~ 'Rare', 
+      is.na(serogroup) ~ 'Other', 
+      serogroup == 'Group1' ~ 'Primary Animal', 
+      serogroup == 'Group2' ~ 'Mixed', 
+      serogroup == 'Group3' ~ 'Primary Plant', 
+      TRUE ~ serogroup
+  ), 
+  serogroup = factor(serogroup, 
+                     levels = c("Braenderup", 
+                                "Enteritidis", 
+                                "Group B", 
+                                "Hadar", 
+                                "Heidelberg", 
+                                "I 4,[5],12:i:-", 
+                                "Infantis", 
+                                "Javiana", 
+                                "Montevideo", 
+                                "Muenchen", 
+                                "Newport", 
+                                "Paratyphi B", 
+                                "Poona", 
+                                "Saintpaul", 
+                                "Thompson", 
+                                "Typhimurium", 
+                                "Typhimurium var Cope", 
+                                "Uganda", 
+                                "Primary Animal", 
+                                "Mixed", 
+                                "Primary Plant", 
+                                "Rare", 
+                                "Other", 
+                                "STEC"))
+  ) %>% 
+  count(serogroup, attr_source) %>% 
+  pivot_wider(names_from = attr_source, values_from = n) %>% 
+  select(`Salmonella Serotype` = serogroup, `Animal Contact`, Meat, Poultry, 
+         `Meat-Poultry Other`, Eggs, Dairy, Vegetables, Fruits, 
+         `Produce Other`, Other) %>% 
+  kable() %>% 
+  kable_styling() 
+```
+
+
+
+
+```{r}
+load(file = 'DataProcessed/val_pre.rda')
+validate %>%  
+  as_tibble() %>% 
+  mutate(attr_source = fct_other(attr_source, 
+                                 drop = c('Other', 
+                                          'Meat-Poultry Other', 
+                                          'Produce Other')), 
+         season = case_when(
+           month < 4 ~ 'Winter', 
+           month < 7 ~ 'Spring', 
+           month < 10 ~ 'Summer', 
+           month <= 12 ~ 'Fall'
+         )) %>% 
+  desc_table(data = .,
+             c(genus, season, geography, total_cases, 
+               percent_male:percent_age50plus, 
+               hosp_percent), 
+             attr_source) %>% 
+  ungroup() %>% 
+  mutate(attr_source = str_to_title(str_replace(attr_source, '_', ' '))) %>% 
+  unite(col = cols, attr_source, total_n, sep = ' <br> N= ') %>% 
+  pivot_wider(names_from = cols, values_from = outcome) %>% 
+  mutate(value = case_when(
+    type == 'freq' ~ value, 
+    type == 'mean_sd' ~ 'Mean (SD)', 
+  ), 
+  variable = recode_factor(variable, 
+                           genus = 'Agent', 
+                           "season" = "Season", 
+                           'geography' = "Geography", 
+                           'total_cases' = "Total Cases", 
+                           'percent_male' = "Percent Male", 
+                           'percent_female' = "Percent Female", 
+                           'percent_age_under1' = "Percent Under 1yr", 
+                           'percent_age1to4' = "Percent 1yr to 4yr", 
+                           'percent_age5to19' = "Percent 5yr to 19yr", 
+                           'percent_age20to49' = "Percent 20yr to 49yr", 
+                           'percent_age50plus' = "Percent 50yr or older", 
+                           'hosp_percent' = "Percent Hospitalized"), 
+  value = str_to_title(str_replace(value, '_', ' '))
+  ) %>% 
+  select(-type) %>% 
+  rename(`  ` = variable, ` ` = value) %>% 
+  kable(escape = F, 
+        caption = 'Table 1. Outbreak Characteristics by Source') %>% 
+  kable_styling() %>% 
+  collapse_rows(1)
+```
+
+
+
+```{r}
+load(file = 'SourceAttribution/ranger_model_obj.rda')
+caret::varImp(final_model)
+```
 
 
 

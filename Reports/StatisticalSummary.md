@@ -16,7 +16,7 @@ output:
 **Project:**P1330White
 **PI:**Alice White  
 **Prepared By:**Caroline Ledbetter  
-**Date:** 12/10/2019  
+**Date:** 03/04/2020  
   
 # Methods  
 ## Data
@@ -73,9 +73,9 @@ The final model was chosen based on Brier
 Scores (a measure of the difference in the predicted probability and the actual 
 event). All analysis was done in R version 3.6.1 (2019-07-05). Data cleaning 
 was done using the tidyverse. rsample v(0.0.5) and
-recipes v(0.1.7) 
+recipes v(0.1.7.9002) 
 (part of tidymodels) were used for data splitting, imputation and 
-preprocessing. The parsnip v(0.0.3.1)
+preprocessing. The parsnip v(0.0.4.9000)
 (null model), adabag v(4.2) (Adaboost.M1), 
 C50 v(0.1.2) (CART), 
 kknn v(1.3.1) (weighted knn),
@@ -123,7 +123,7 @@ and vegetable outbreaks have the highest average total cases.
 <caption>Table 1. Outbreak Characteristics by Source</caption>
  <thead>
   <tr>
-   <th style="text-align:left;">   </th>
+   <th style="text-align:left;">    </th>
    <th style="text-align:left;">   </th>
    <th style="text-align:left;"> Animal Contact <br> N= 187 </th>
    <th style="text-align:left;"> Dairy <br> N= 79 </th>
@@ -136,6 +136,30 @@ and vegetable outbreaks have the highest average total cases.
   </tr>
  </thead>
 <tbody>
+  <tr>
+   <td style="text-align:left;vertical-align: middle !important;" rowspan="2"> Agent </td>
+   <td style="text-align:left;"> Escherichia </td>
+   <td style="text-align:left;"> 45(24) </td>
+   <td style="text-align:left;"> 36(46) </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> 17(23) </td>
+   <td style="text-align:left;"> 144(46) </td>
+   <td style="text-align:left;"> 3(1) </td>
+   <td style="text-align:left;"> 61(32) </td>
+   <td style="text-align:left;"> 31(21) </td>
+  </tr>
+  <tr>
+   
+   <td style="text-align:left;"> Salmonella </td>
+   <td style="text-align:left;"> 142(76) </td>
+   <td style="text-align:left;"> 43(54) </td>
+   <td style="text-align:left;"> 155(100) </td>
+   <td style="text-align:left;"> 58(77) </td>
+   <td style="text-align:left;"> 168(54) </td>
+   <td style="text-align:left;"> 221(99) </td>
+   <td style="text-align:left;"> 131(68) </td>
+   <td style="text-align:left;"> 120(79) </td>
+  </tr>
   <tr>
    <td style="text-align:left;vertical-align: middle !important;" rowspan="4"> Season </td>
    <td style="text-align:left;"> Winter </td>
@@ -466,6 +490,620 @@ outbreak source is shown in figure 5.
 
 ![](StatisticalSummary_files/figure-html/accuracy_graph-1.png)<!-- -->
 
+
+<table class="table" style="margin-left: auto; margin-right: auto;">
+ <thead>
+  <tr>
+   <th style="text-align:left;"> Salmonella Serotype </th>
+   <th style="text-align:right;"> Animal Contact </th>
+   <th style="text-align:right;"> Meat </th>
+   <th style="text-align:right;"> Poultry </th>
+   <th style="text-align:right;"> Meat-Poultry Other </th>
+   <th style="text-align:right;"> Eggs </th>
+   <th style="text-align:right;"> Dairy </th>
+   <th style="text-align:right;"> Vegetables </th>
+   <th style="text-align:right;"> Fruits </th>
+   <th style="text-align:right;"> Produce Other </th>
+   <th style="text-align:right;"> Other </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> Braenderup </td>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Enteritidis </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 22 </td>
+   <td style="text-align:right;"> 57 </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 123 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 16 </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 16 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Group B </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> -- </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Hadar </td>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Heidelberg </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 25 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 7 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> I 4,[5],12:i:- </td>
+   <td style="text-align:right;"> 12 </td>
+   <td style="text-align:right;"> 12 </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Infantis </td>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 4 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Javiana </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 13 </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 3 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Montevideo </td>
+   <td style="text-align:right;"> 9 </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 3 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Muenchen </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Newport </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 17 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 9 </td>
+   <td style="text-align:right;"> 27 </td>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 3 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Paratyphi B </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 4 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Poona </td>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Saintpaul </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Thompson </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Typhimurium </td>
+   <td style="text-align:right;"> 33 </td>
+   <td style="text-align:right;"> 29 </td>
+   <td style="text-align:right;"> 22 </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 18 </td>
+   <td style="text-align:right;"> 11 </td>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 10 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Typhimurium var Cope </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Uganda </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Primary Animal </td>
+   <td style="text-align:right;"> 15 </td>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 1 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Mixed </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 11 </td>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 7 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Primary Plant </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 7 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Rare </td>
+   <td style="text-align:right;"> 13 </td>
+   <td style="text-align:right;"> 18 </td>
+   <td style="text-align:right;"> 12 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 9 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 16 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Other </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> 12 </td>
+   <td style="text-align:right;"> 29 </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 7 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> STEC </td>
+   <td style="text-align:right;"> 45 </td>
+   <td style="text-align:right;"> 144 </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 36 </td>
+   <td style="text-align:right;"> 61 </td>
+   <td style="text-align:right;"> 17 </td>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 19 </td>
+  </tr>
+</tbody>
+</table>
+
+
+
+
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>Table 1. Outbreak Characteristics by Source</caption>
+ <thead>
+  <tr>
+   <th style="text-align:left;">    </th>
+   <th style="text-align:left;">   </th>
+   <th style="text-align:left;"> Animal Contact <br> N= 31 </th>
+   <th style="text-align:left;"> Dairy <br> N= 4 </th>
+   <th style="text-align:left;"> Eggs <br> N= 5 </th>
+   <th style="text-align:left;"> Fruits <br> N= 12 </th>
+   <th style="text-align:left;"> Meat <br> N= 15 </th>
+   <th style="text-align:left;"> Other <br> N= 7 </th>
+   <th style="text-align:left;"> Poultry <br> N= 14 </th>
+   <th style="text-align:left;"> Vegetables <br> N= 10 </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;vertical-align: middle !important;" rowspan="2"> Agent </td>
+   <td style="text-align:left;"> Escherichia </td>
+   <td style="text-align:left;"> 10(32) </td>
+   <td style="text-align:left;"> 1(25) </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> 2(13) </td>
+   <td style="text-align:left;"> 2(29) </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> 4(40) </td>
+  </tr>
+  <tr>
+   
+   <td style="text-align:left;"> Salmonella </td>
+   <td style="text-align:left;"> 21(68) </td>
+   <td style="text-align:left;"> 3(75) </td>
+   <td style="text-align:left;"> 5(100) </td>
+   <td style="text-align:left;"> 12(100) </td>
+   <td style="text-align:left;"> 13(87) </td>
+   <td style="text-align:left;"> 5(71) </td>
+   <td style="text-align:left;"> 14(100) </td>
+   <td style="text-align:left;"> 6(60) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;vertical-align: middle !important;" rowspan="4"> Season </td>
+   <td style="text-align:left;"> Spring </td>
+   <td style="text-align:left;"> 8(26) </td>
+   <td style="text-align:left;"> 3(75) </td>
+   <td style="text-align:left;"> 1(20) </td>
+   <td style="text-align:left;"> 3(25) </td>
+   <td style="text-align:left;"> 2(13) </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> 5(36) </td>
+   <td style="text-align:left;"> 1(10) </td>
+  </tr>
+  <tr>
+   
+   <td style="text-align:left;"> Summer </td>
+   <td style="text-align:left;"> 9(29) </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> 1(20) </td>
+   <td style="text-align:left;"> 5(42) </td>
+   <td style="text-align:left;"> 11(73) </td>
+   <td style="text-align:left;"> 3(43) </td>
+   <td style="text-align:left;"> 1(7) </td>
+   <td style="text-align:left;"> 4(40) </td>
+  </tr>
+  <tr>
+   
+   <td style="text-align:left;"> Winter </td>
+   <td style="text-align:left;"> 14(45) </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> 1(20) </td>
+   <td style="text-align:left;"> 3(25) </td>
+   <td style="text-align:left;"> 1(7) </td>
+   <td style="text-align:left;"> 4(57) </td>
+   <td style="text-align:left;"> 3(21) </td>
+   <td style="text-align:left;"> 2(20) </td>
+  </tr>
+  <tr>
+   
+   <td style="text-align:left;"> Fall </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> 1(25) </td>
+   <td style="text-align:left;"> 2(40) </td>
+   <td style="text-align:left;"> 1(8) </td>
+   <td style="text-align:left;"> 1(7) </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> 5(36) </td>
+   <td style="text-align:left;"> 3(30) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;vertical-align: middle !important;" rowspan="4"> Geography </td>
+   <td style="text-align:left;"> Multi State </td>
+   <td style="text-align:left;"> 14(45) </td>
+   <td style="text-align:left;"> 1(25) </td>
+   <td style="text-align:left;"> 1(20) </td>
+   <td style="text-align:left;"> 10(83) </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> 3(43) </td>
+   <td style="text-align:left;"> 1(7) </td>
+   <td style="text-align:left;"> 6(60) </td>
+  </tr>
+  <tr>
+   
+   <td style="text-align:left;"> Single County </td>
+   <td style="text-align:left;"> 17(55) </td>
+   <td style="text-align:left;"> 3(75) </td>
+   <td style="text-align:left;"> 4(80) </td>
+   <td style="text-align:left;"> 1(8) </td>
+   <td style="text-align:left;"> 12(80) </td>
+   <td style="text-align:left;"> 2(29) </td>
+   <td style="text-align:left;"> 9(64) </td>
+   <td style="text-align:left;"> 3(30) </td>
+  </tr>
+  <tr>
+   
+   <td style="text-align:left;"> Missing </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> 1(8) </td>
+   <td style="text-align:left;"> 1(7) </td>
+   <td style="text-align:left;"> 1(14) </td>
+   <td style="text-align:left;"> 3(21) </td>
+   <td style="text-align:left;"> -- </td>
+  </tr>
+  <tr>
+   
+   <td style="text-align:left;"> Multi County </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:left;"> 2(13) </td>
+   <td style="text-align:left;"> 1(14) </td>
+   <td style="text-align:left;"> 1(7) </td>
+   <td style="text-align:left;"> 1(10) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Total Cases </td>
+   <td style="text-align:left;"> Mean (Sd) </td>
+   <td style="text-align:left;"> 43.161(73.56) </td>
+   <td style="text-align:left;"> 8.250(5.12) </td>
+   <td style="text-align:left;"> 16.200(16.57) </td>
+   <td style="text-align:left;"> 38.333(57.10) </td>
+   <td style="text-align:left;"> 11.133(11.75) </td>
+   <td style="text-align:left;"> 40.714(70.55) </td>
+   <td style="text-align:left;"> 63.000(145.18) </td>
+   <td style="text-align:left;"> 39.300(45.10) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Percent Male </td>
+   <td style="text-align:left;"> Mean (Sd) </td>
+   <td style="text-align:left;"> 52.219(18.93) </td>
+   <td style="text-align:left;"> 49.482(40.25) </td>
+   <td style="text-align:left;"> 28.683(19.61) </td>
+   <td style="text-align:left;"> 48.505(14.58) </td>
+   <td style="text-align:left;"> 48.619(31.27) </td>
+   <td style="text-align:left;"> 39.725(20.09) </td>
+   <td style="text-align:left;"> 58.976(27.68) </td>
+   <td style="text-align:left;"> 36.023(9.34) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Percent Female </td>
+   <td style="text-align:left;"> Mean (Sd) </td>
+   <td style="text-align:left;"> 47.781(18.93) </td>
+   <td style="text-align:left;"> 50.518(40.25) </td>
+   <td style="text-align:left;"> 71.317(19.61) </td>
+   <td style="text-align:left;"> 51.495(14.58) </td>
+   <td style="text-align:left;"> 51.381(31.27) </td>
+   <td style="text-align:left;"> 60.275(20.09) </td>
+   <td style="text-align:left;"> 41.024(27.68) </td>
+   <td style="text-align:left;"> 63.977(9.34) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Percent Under 1yr </td>
+   <td style="text-align:left;"> Mean (Sd) </td>
+   <td style="text-align:left;"> 5.801(9.42) </td>
+   <td style="text-align:left;"> 1.785(3.57) </td>
+   <td style="text-align:left;"> 0.000(0.00) </td>
+   <td style="text-align:left;"> 3.342(3.90) </td>
+   <td style="text-align:left;"> 8.579(28.80) </td>
+   <td style="text-align:left;"> 0.071(0.19) </td>
+   <td style="text-align:left;"> 3.846(13.87) </td>
+   <td style="text-align:left;"> 0.477(1.26) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Percent 1yr to 4yr </td>
+   <td style="text-align:left;"> Mean (Sd) </td>
+   <td style="text-align:left;"> 24.622(32.20) </td>
+   <td style="text-align:left;"> 18.118(16.55) </td>
+   <td style="text-align:left;"> 1.135(2.27) </td>
+   <td style="text-align:left;"> 14.423(19.88) </td>
+   <td style="text-align:left;"> 1.131(2.67) </td>
+   <td style="text-align:left;"> 5.055(12.93) </td>
+   <td style="text-align:left;"> 6.410(16.01) </td>
+   <td style="text-align:left;"> 1.885(2.47) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Percent 20yr to 49yr </td>
+   <td style="text-align:left;"> Mean (Sd) </td>
+   <td style="text-align:left;"> 24.657(24.24) </td>
+   <td style="text-align:left;"> 18.961(13.19) </td>
+   <td style="text-align:left;"> 40.499(19.00) </td>
+   <td style="text-align:left;"> 27.447(21.39) </td>
+   <td style="text-align:left;"> 56.382(33.77) </td>
+   <td style="text-align:left;"> 58.386(24.32) </td>
+   <td style="text-align:left;"> 54.108(25.25) </td>
+   <td style="text-align:left;"> 37.449(13.71) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Percent 5yr to 19yr </td>
+   <td style="text-align:left;"> Mean (Sd) </td>
+   <td style="text-align:left;"> 26.077(31.89) </td>
+   <td style="text-align:left;"> 34.816(26.54) </td>
+   <td style="text-align:left;"> 2.273(4.55) </td>
+   <td style="text-align:left;"> 18.114(21.03) </td>
+   <td style="text-align:left;"> 16.352(28.35) </td>
+   <td style="text-align:left;"> 23.363(19.37) </td>
+   <td style="text-align:left;"> 11.593(15.86) </td>
+   <td style="text-align:left;"> 23.699(22.06) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Percent 50yr or older </td>
+   <td style="text-align:left;"> Mean (Sd) </td>
+   <td style="text-align:left;"> 18.843(23.47) </td>
+   <td style="text-align:left;"> 26.319(14.82) </td>
+   <td style="text-align:left;"> 56.093(16.95) </td>
+   <td style="text-align:left;"> 36.674(24.10) </td>
+   <td style="text-align:left;"> 17.557(17.57) </td>
+   <td style="text-align:left;"> 13.124(12.34) </td>
+   <td style="text-align:left;"> 24.042(20.73) </td>
+   <td style="text-align:left;"> 36.490(21.42) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Percent Hospitalized </td>
+   <td style="text-align:left;"> Mean (Sd) </td>
+   <td style="text-align:left;"> 0.295(0.25) </td>
+   <td style="text-align:left;"> 0.189(0.17) </td>
+   <td style="text-align:left;"> 0.313(0.25) </td>
+   <td style="text-align:left;"> 0.284(0.17) </td>
+   <td style="text-align:left;"> 0.238(0.24) </td>
+   <td style="text-align:left;"> 0.234(0.18) </td>
+   <td style="text-align:left;"> 0.135(0.24) </td>
+   <td style="text-align:left;"> 0.337(0.30) </td>
+  </tr>
+</tbody>
+</table>
+
+
+
+
+```
+## ranger variable importance
+## 
+##   only 20 most important variables shown (out of 31)
+## 
+##                         Overall
+## serogroupEnteritidis    100.000
+## serogroupSTEC            89.799
+## geographysingle_county   87.131
+## percent_age_under1       66.700
+## percent_age20to49        63.794
+## geographymulti_state     60.541
+## percent_age1to4          38.963
+## percent_age5to19         30.437
+## percent_age50plus        21.262
+## month                    20.188
+## serogroupHeidelberg      19.147
+## percent_female           18.160
+## serogroupTyphimurium     15.675
+## serogroupGroup2           9.542
+## serogroupI 4,[5],12:i:-   9.377
+## serogroupNewport          8.285
+## serogroupInfantis         6.964
+## serogroupPoona            6.513
+## serogroupJaviana          6.335
+## serogroupGroup1           5.884
+```
 
 
 
