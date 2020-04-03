@@ -18,7 +18,7 @@ library(tidyverse)
 library(recipes) # used recipe to bake input
 library(caret)
 library(e1071)
-
+library(lime)
 # load prediction algortithm
 load(file = 'ranger_model_obj.rda')
 
@@ -27,6 +27,10 @@ load(file = 'file_skeleton.rda')
 
 # classify rare serotypes according to primary source
 load(file = "sero_groupings.rda")
+
+# load lime explainer
+load(file = "lime_explainer.rda")
+
 
 load(file = 'recipe.rda')
 
@@ -226,9 +230,12 @@ ui <- fluidPage(
         # output results
         div(mainPanel(
             div(plotOutput("Results"), style = 'align:right'), 
+            div(plotOutput("explain")), 
             a(href = "http://www.COFoodSafety.org", 
-              img(src = 'CoE logo no bckgrnd.png', class = 'logo'))), 
+              img(src = 'CoE logo no bckgrnd.png', class = 'logo'))
+            ), 
             style = 'margin-left:550px')
+        
     )
 )
 
@@ -238,7 +245,6 @@ server <- function(input, output, session) {
     
     # run model only once submit is pressed
     observeEvent(input$.Submit, {
-        output$Results <- renderPlot({
             # isolate so that after submit is pressed, model is not rerun
             # until it is pressed again (prevent dynamic updating)
             isolate({
@@ -290,21 +296,41 @@ server <- function(input, output, session) {
                                     pattern = '_', 
                                     replacement = ' ')
                         ))
-
-                # plot
-                ggplot(data = pred, aes(x = predicted_cat,
-                                        y = predicted_value)) +
-                    geom_col(aes(fill = predicted_cat)) +
-                    theme_classic() +
-                    labs(x = 'Potential Source',
-                         y = 'Predicted Probability',
-                         title = 'Predicted Probability of Potential Sources') +
-                    guides(fill = 'none') +
-                    geom_label(aes(label = round(predicted_value, 2))) + 
-                    theme(axis.text.x = element_text(angle = 45, hjust = 1))
             })
-        }, width = 800, height = 800, res = 200)
+            output$Results <- renderPlot({
+                    # plot
+                    ggplot(data = pred, aes(x = predicted_cat,
+                                            y = predicted_value)) +
+                        geom_col(aes(fill = predicted_cat)) +
+                        theme_classic() +
+                        labs(x = 'Potential Source',
+                             y = 'Predicted Probability',
+                             title = 'Predicted Probability of Potential Sources') +
+                        guides(fill = 'none') +
+                        geom_label(aes(label = round(predicted_value, 2))) + 
+                        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+            }, width = 800, height = 800, res = 200)
+        output$explain <- renderPlot({
+            explanation <- explain(data_to_predict[, -10], explainer, n_labels = 7, n_features = 9)
+            explanation %>%
+                mutate(feature_desc = str_to_title(str_replace_all(feature_desc, "_", " ")),
+                       feature_desc = str_replace_all(feature_desc,
+                                                      c(`Serogroup = Stec` = 'STEC',
+                                                        Under1 = "Under 1",
+                                                        Age1to4 = "Age 1 - 4",
+                                                        Age5to19 = "Age 5 - 19",
+                                                        Age20to49 = "Age 20 - 49",
+                                                        Age50plus = "Age 50 and older",
+                                                        `Month <= 3.75` = 'Jan - Mar',
+                                                        `3.75 < month <= 6.50` = 'Apr - Jun',
+                                                        `6.50 < month <= 9.25` = 'Jul - Sep',
+                                                        `9.25 < month` = 'Oct - Dec'))
+
+                ) %>%
+                plot_features()
+        }, width = 1000, height = 500, res = 100)
     })
+    
 
     # update salmonella serotype dropdown based on STEC/salmonella selection
     observeEvent(input$.bacteria, {
