@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r global_options, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, dpi = 300)
 knitr::opts_knit$set(root.dir = '../')
 ```
 
@@ -293,8 +293,8 @@ analysis %>%  mutate(attr_source = fct_other(attr_source,
                                             drop = c('Other', 
                                                      'Meat-Poultry Other', 
                                                      'Produce Other'))) %>% 
-  desc_table(.,
-             c(season, geography, total_cases, 
+  desc_table(data = .,
+             c(genus, season, geography, total_cases, 
                percent_male:percent_age50plus, 
                hosp_percent, outbreak_length), 
              attr_source) %>% 
@@ -305,6 +305,7 @@ analysis %>%  mutate(attr_source = fct_other(attr_source,
     type == 'mean_sd' ~ 'Mean (SD)', 
   ), 
   variable = recode_factor(variable, 
+                           genus = 'Agent', 
                            "season" = "Season", 
                            'geography' = "Geography", 
                            'total_cases' = "Total Cases", 
@@ -320,7 +321,7 @@ analysis %>%  mutate(attr_source = fct_other(attr_source,
   value = str_to_title(str_replace(value, '_', ' '))
   ) %>% 
   select(-type) %>% 
-  rename(` ` = variable, ` ` = value) %>% 
+  rename(`  ` = variable, ` ` = value) %>% 
   kable(escape = F, 
         caption = 'Table 1. Outbreak Characteristics by Source') %>% 
   kable_styling() %>% 
@@ -366,6 +367,10 @@ brier_scores %>%
 ```
 
 ```{r calibration_curves, fig.width = 10, fig.height = 6}
+xy_line <- tibble(x = seq(0, 1, 0.2), 
+                  y = seq(0, 1, 0.2))
+upper_poly <- tibble(x = c(0, 0, 1), 
+                     y = c(0, 1, 1))
 results_table %>% 
   mutate(bin_midpoint = cut(predicted_value, 
                             breaks = seq(0, 1, 0.2), 
@@ -393,17 +398,27 @@ results_table %>%
   ggplot(aes(x = bin_midpoint, 
              y = pct, 
              colour = predicted_cat)) +
+  geom_area(data = xy_line, aes(x = x, y = y), 
+            inherit.aes = FALSE, 
+            fill = 'blue', alpha = 0.2) +
+  geom_polygon(data = upper_poly, aes(x = x, y = y), 
+               inherit.aes = F, 
+               fill = 'red', alpha = 0.2) + 
   geom_line(aes(group = predicted_cat)) +
   geom_point(aes(size = n)) + 
+  geom_label(aes(x = 0, y = 1, label = 'Under-predicted'), 
+             colour = 'red', hjust = 0, vjust = 1) +
+  geom_label(aes(x = 1, y = 0, label = 'Over-predicted'), 
+             colour = 'blue', hjust = 1, vjust = 0) +
   scale_x_continuous(breaks = seq(0.1, 0.9, 0.2)) + 
   scale_y_continuous(breaks = seq(0.1, 0.9, 0.2)) +
-  labs(x = 'Bin Midpoint', 
+  labs(x = 'Predicted Bin Midpoint', 
        y = 'Observed Event Proportion', 
        title = 'Calibration Plots For All Models', 
        colour = 'Outbreak Source', 
        size = 'N') + 
   geom_abline(slope = 1) + 
-  theme_classic() + 
+  theme_classic() +  
   facet_wrap(vars(model))
 ```
 
@@ -456,8 +471,8 @@ metrics to more accurately reflect real world performance. The selected
 random forest model had a brier score of 
 `r round(val_bs$brier_score, 3)`. 
 The calibration plot is shown in figure 4. Fruit and animal contact 
-outbreaks were the most over-predicted. Dairy, and egg outbreaks
-were the most under-predicted. 
+outbreaks were the most under-predicted. Dairy, meat and egg outbreaks
+were the most over-predicted. 
 
 
 ```{r validation_calplot}
@@ -484,7 +499,17 @@ predict(models$ranger, validate, type = 'prob') %>%
   filter(y == 1) %>% 
   ggplot(aes(x = bin_midpoint, 
              y = pct, 
-             colour = predicted_cat)) +
+             colour = predicted_cat)) + 
+  geom_area(data = xy_line, aes(x = x, y = y), 
+            inherit.aes = FALSE, 
+            fill = 'blue', alpha = 0.2) +
+  geom_polygon(data = upper_poly, aes(x = x, y = y), 
+               inherit.aes = F, 
+               fill = 'red', alpha = 0.2) + 
+  geom_label(aes(x = 0, y = 1, label = 'Under-predicted'), 
+             colour = 'red', hjust = 0, vjust = 1) +
+  geom_label(aes(x = 1, y = 0, label = 'Over-predicted'), 
+             colour = 'blue', hjust = 1, vjust = 0) +
   geom_line(aes(group = predicted_cat)) +
   geom_point(aes(size = n), position = position_jitter(width = 0.01)) + 
   scale_x_continuous(breaks = seq(0.1, 0.9, 0.2)) + 
@@ -519,6 +544,112 @@ accuracy %>%
   theme_classic()
 ```
 
+
+```{r serotypes}
+analysis %>% 
+  mutate(
+    serogroup = case_when(
+      serogroup == 'rare' ~ 'Rare', 
+      is.na(serogroup) ~ 'Other', 
+      serogroup == 'Group1' ~ 'Primary Animal', 
+      serogroup == 'Group2' ~ 'Mixed', 
+      serogroup == 'Group3' ~ 'Primary Plant', 
+      TRUE ~ serogroup
+  ), 
+  serogroup = factor(serogroup, 
+                     levels = c("Braenderup", 
+                                "Enteritidis", 
+                                "Group B", 
+                                "Hadar", 
+                                "Heidelberg", 
+                                "I 4,[5],12:i:-", 
+                                "Infantis", 
+                                "Javiana", 
+                                "Montevideo", 
+                                "Muenchen", 
+                                "Newport", 
+                                "Paratyphi B", 
+                                "Poona", 
+                                "Saintpaul", 
+                                "Thompson", 
+                                "Typhimurium", 
+                                "Typhimurium var Cope", 
+                                "Uganda", 
+                                "Primary Animal", 
+                                "Mixed", 
+                                "Primary Plant", 
+                                "Rare", 
+                                "Other", 
+                                "STEC"))
+  ) %>% 
+  count(serogroup, attr_source) %>% 
+  pivot_wider(names_from = attr_source, values_from = n) %>% 
+  select(`Salmonella Serotype` = serogroup, `Animal Contact`, Meat, Poultry, 
+         `Meat-Poultry Other`, Eggs, Dairy, Vegetables, Fruits, 
+         `Produce Other`, Other) %>% 
+  kable() %>% 
+  kable_styling() 
+```
+
+
+
+
+```{r}
+load(file = 'DataProcessed/val_pre.rda')
+validate %>%  
+  as_tibble() %>% 
+  mutate(attr_source = fct_other(attr_source, 
+                                 drop = c('Other', 
+                                          'Meat-Poultry Other', 
+                                          'Produce Other')), 
+         season = case_when(
+           month < 4 ~ 'Winter', 
+           month < 7 ~ 'Spring', 
+           month < 10 ~ 'Summer', 
+           month <= 12 ~ 'Fall'
+         )) %>% 
+  desc_table(data = .,
+             c(genus, season, geography, total_cases, 
+               percent_male:percent_age50plus, 
+               hosp_percent), 
+             attr_source) %>% 
+  ungroup() %>% 
+  mutate(attr_source = str_to_title(str_replace(attr_source, '_', ' '))) %>% 
+  unite(col = cols, attr_source, total_n, sep = ' <br> N= ') %>% 
+  pivot_wider(names_from = cols, values_from = outcome) %>% 
+  mutate(value = case_when(
+    type == 'freq' ~ value, 
+    type == 'mean_sd' ~ 'Mean (SD)', 
+  ), 
+  variable = recode_factor(variable, 
+                           genus = 'Agent', 
+                           "season" = "Season", 
+                           'geography' = "Geography", 
+                           'total_cases' = "Total Cases", 
+                           'percent_male' = "Percent Male", 
+                           'percent_female' = "Percent Female", 
+                           'percent_age_under1' = "Percent Under 1yr", 
+                           'percent_age1to4' = "Percent 1yr to 4yr", 
+                           'percent_age5to19' = "Percent 5yr to 19yr", 
+                           'percent_age20to49' = "Percent 20yr to 49yr", 
+                           'percent_age50plus' = "Percent 50yr or older", 
+                           'hosp_percent' = "Percent Hospitalized"), 
+  value = str_to_title(str_replace(value, '_', ' '))
+  ) %>% 
+  select(-type) %>% 
+  rename(`  ` = variable, ` ` = value) %>% 
+  kable(escape = F, 
+        caption = 'Table 1. Outbreak Characteristics by Source') %>% 
+  kable_styling() %>% 
+  collapse_rows(1)
+```
+
+
+
+```{r}
+load(file = 'SourceAttribution/ranger_model_obj.rda')
+caret::varImp(final_model)
+```
 
 
 
