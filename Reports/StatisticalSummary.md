@@ -16,7 +16,7 @@ output:
 **Project:**P1330White
 **PI:**Alice White  
 **Prepared By:**Caroline Ledbetter  
-**Date:** 03/04/2020  
+**Date:** 04/08/2020  
   
 # Methods  
 ## Data
@@ -73,7 +73,7 @@ The final model was chosen based on Brier
 Scores (a measure of the difference in the predicted probability and the actual 
 event). All analysis was done in R version 3.6.1 (2019-07-05). Data cleaning 
 was done using the tidyverse. rsample v(0.0.5) and
-recipes v(0.1.7.9002) 
+recipes v(0.1.9) 
 (part of tidymodels) were used for data splitting, imputation and 
 preprocessing. The parsnip v(0.0.4.9000)
 (null model), adabag v(4.2) (Adaboost.M1), 
@@ -98,13 +98,13 @@ categories and $N$ is the total number of observed outcomes.
 ![Figure 2. Graphical Representation of Brier Score for One Outbreak](StatisticalSummary_files/figure-html/plot_bs-1.png)
 
 # Results  
-There were 4,059 non-waterborne 
+There were 4,027 non-waterborne 
 outbreaks in the NORS database. 
 748 outbreaks that were not
 food-borne or animal contact were excluded. 
 1,936 food-borne outbreaks were 
 excluded because they did not have a single identifiable food source. 
-The final data set included 1,224 outbreaks that were identified as 
+The final data set included 1,216 outbreaks that were identified as 
 dairy, eggs, fruits, meat, poultry, vegetables and animal contact.
 
 Characteristics of outbreaks in the analysis are given in table 1. Fruit 
@@ -125,22 +125,22 @@ and vegetable outbreaks have the highest average total cases.
   <tr>
    <th style="text-align:left;">    </th>
    <th style="text-align:left;">   </th>
-   <th style="text-align:left;"> Animal Contact <br> N= 187 </th>
-   <th style="text-align:left;"> Dairy <br> N= 79 </th>
+   <th style="text-align:left;"> Animal Contact <br> N= 185 </th>
+   <th style="text-align:left;"> Dairy <br> N= 74 </th>
    <th style="text-align:left;"> Eggs <br> N= 155 </th>
    <th style="text-align:left;"> Fruits <br> N= 75 </th>
    <th style="text-align:left;"> Meat <br> N= 312 </th>
-   <th style="text-align:left;"> Poultry <br> N= 224 </th>
+   <th style="text-align:left;"> Poultry <br> N= 223 </th>
    <th style="text-align:left;"> Vegetables <br> N= 192 </th>
-   <th style="text-align:left;"> Other <br> N= 151 </th>
+   <th style="text-align:left;"> Other <br> N= 149 </th>
   </tr>
  </thead>
 <tbody>
   <tr>
    <td style="text-align:left;vertical-align: middle !important;" rowspan="2"> Agent </td>
    <td style="text-align:left;"> Escherichia </td>
-   <td style="text-align:left;"> 45(24) </td>
-   <td style="text-align:left;"> 36(46) </td>
+   <td style="text-align:left;"> 44(24) </td>
+   <td style="text-align:left;"> 33(45) </td>
    <td style="text-align:left;"> -- </td>
    <td style="text-align:left;"> 17(23) </td>
    <td style="text-align:left;"> 144(46) </td>
@@ -151,32 +151,32 @@ and vegetable outbreaks have the highest average total cases.
   <tr>
    
    <td style="text-align:left;"> Salmonella </td>
-   <td style="text-align:left;"> 142(76) </td>
-   <td style="text-align:left;"> 43(54) </td>
+   <td style="text-align:left;"> 141(76) </td>
+   <td style="text-align:left;"> 41(55) </td>
    <td style="text-align:left;"> 155(100) </td>
    <td style="text-align:left;"> 58(77) </td>
    <td style="text-align:left;"> 168(54) </td>
-   <td style="text-align:left;"> 221(99) </td>
+   <td style="text-align:left;"> 220(99) </td>
    <td style="text-align:left;"> 131(68) </td>
-   <td style="text-align:left;"> 120(79) </td>
+   <td style="text-align:left;"> 118(79) </td>
   </tr>
   <tr>
    <td style="text-align:left;vertical-align: middle !important;" rowspan="4"> Season </td>
    <td style="text-align:left;"> Winter </td>
    <td style="text-align:left;"> 65(35) </td>
-   <td style="text-align:left;"> 16(20) </td>
+   <td style="text-align:left;"> 15(20) </td>
    <td style="text-align:left;"> 27(17) </td>
    <td style="text-align:left;"> 8(11) </td>
    <td style="text-align:left;"> 41(13) </td>
    <td style="text-align:left;"> 27(12) </td>
    <td style="text-align:left;"> 37(19) </td>
-   <td style="text-align:left;"> 25(17) </td>
+   <td style="text-align:left;"> 24(16) </td>
   </tr>
   <tr>
    
    <td style="text-align:left;"> Spring </td>
-   <td style="text-align:left;"> 51(27) </td>
-   <td style="text-align:left;"> 19(24) </td>
+   <td style="text-align:left;"> 50(27) </td>
+   <td style="text-align:left;"> 17(23) </td>
    <td style="text-align:left;"> 37(24) </td>
    <td style="text-align:left;"> 27(36) </td>
    <td style="text-align:left;"> 104(33) </td>
@@ -187,20 +187,20 @@ and vegetable outbreaks have the highest average total cases.
   <tr>
    
    <td style="text-align:left;"> Summer </td>
-   <td style="text-align:left;"> 43(23) </td>
-   <td style="text-align:left;"> 27(34) </td>
+   <td style="text-align:left;"> 42(23) </td>
+   <td style="text-align:left;"> 25(34) </td>
    <td style="text-align:left;"> 59(38) </td>
    <td style="text-align:left;"> 24(32) </td>
    <td style="text-align:left;"> 112(36) </td>
-   <td style="text-align:left;"> 74(33) </td>
+   <td style="text-align:left;"> 73(33) </td>
    <td style="text-align:left;"> 50(26) </td>
-   <td style="text-align:left;"> 56(37) </td>
+   <td style="text-align:left;"> 55(37) </td>
   </tr>
   <tr>
    
    <td style="text-align:left;"> Fall </td>
    <td style="text-align:left;"> 28(15) </td>
-   <td style="text-align:left;"> 17(22) </td>
+   <td style="text-align:left;"> 17(23) </td>
    <td style="text-align:left;"> 32(21) </td>
    <td style="text-align:left;"> 16(21) </td>
    <td style="text-align:left;"> 55(18) </td>
@@ -211,8 +211,8 @@ and vegetable outbreaks have the highest average total cases.
   <tr>
    <td style="text-align:left;vertical-align: middle !important;" rowspan="4"> Geography </td>
    <td style="text-align:left;"> Multi County </td>
-   <td style="text-align:left;"> 25(13) </td>
-   <td style="text-align:left;"> 30(38) </td>
+   <td style="text-align:left;"> 25(14) </td>
+   <td style="text-align:left;"> 29(39) </td>
    <td style="text-align:left;"> 12(8) </td>
    <td style="text-align:left;"> 12(16) </td>
    <td style="text-align:left;"> 49(16) </td>
@@ -224,7 +224,7 @@ and vegetable outbreaks have the highest average total cases.
    
    <td style="text-align:left;"> Multi State </td>
    <td style="text-align:left;"> 71(38) </td>
-   <td style="text-align:left;"> 8(10) </td>
+   <td style="text-align:left;"> 8(11) </td>
    <td style="text-align:left;"> 4(3) </td>
    <td style="text-align:left;"> 33(44) </td>
    <td style="text-align:left;"> 55(18) </td>
@@ -235,14 +235,14 @@ and vegetable outbreaks have the highest average total cases.
   <tr>
    
    <td style="text-align:left;"> Single County </td>
-   <td style="text-align:left;"> 87(47) </td>
-   <td style="text-align:left;"> 41(52) </td>
+   <td style="text-align:left;"> 85(46) </td>
+   <td style="text-align:left;"> 37(50) </td>
    <td style="text-align:left;"> 137(88) </td>
    <td style="text-align:left;"> 28(37) </td>
    <td style="text-align:left;"> 206(66) </td>
-   <td style="text-align:left;"> 195(87) </td>
+   <td style="text-align:left;"> 194(87) </td>
    <td style="text-align:left;"> 60(31) </td>
-   <td style="text-align:left;"> 107(71) </td>
+   <td style="text-align:left;"> 106(71) </td>
   </tr>
   <tr>
    
@@ -254,127 +254,127 @@ and vegetable outbreaks have the highest average total cases.
    <td style="text-align:left;"> 2(1) </td>
    <td style="text-align:left;"> 1(0) </td>
    <td style="text-align:left;"> 1(1) </td>
-   <td style="text-align:left;"> 2(1) </td>
+   <td style="text-align:left;"> 1(1) </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Total Cases </td>
    <td style="text-align:left;"> Mean (Sd) </td>
-   <td style="text-align:left;"> 30.99(55.88) </td>
-   <td style="text-align:left;"> 24.00(35.96) </td>
+   <td style="text-align:left;"> 31.24(56.14) </td>
+   <td style="text-align:left;"> 24.59(36.94) </td>
    <td style="text-align:left;"> 36.94(158.52) </td>
    <td style="text-align:left;"> 54.28(119.66) </td>
    <td style="text-align:left;"> 22.46(38.42) </td>
-   <td style="text-align:left;"> 26.08(58.45) </td>
+   <td style="text-align:left;"> 26.18(58.56) </td>
    <td style="text-align:left;"> 56.57(139.31) </td>
-   <td style="text-align:left;"> 47.23(127.68) </td>
+   <td style="text-align:left;"> 47.68(128.48) </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Percent Male </td>
    <td style="text-align:left;"> Mean (Sd) </td>
-   <td style="text-align:left;"> 42.12(23.19) </td>
-   <td style="text-align:left;"> 49.11(22.41) </td>
+   <td style="text-align:left;"> 42.13(22.87) </td>
+   <td style="text-align:left;"> 47.52(21.74) </td>
    <td style="text-align:left;"> 49.81(23.39) </td>
    <td style="text-align:left;"> 36.21(17.70) </td>
    <td style="text-align:left;"> 50.61(23.51) </td>
-   <td style="text-align:left;"> 49.02(26.53) </td>
+   <td style="text-align:left;"> 49.07(26.59) </td>
    <td style="text-align:left;"> 37.94(19.08) </td>
-   <td style="text-align:left;"> 47.17(21.30) </td>
+   <td style="text-align:left;"> 47.05(21.39) </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Percent Female </td>
    <td style="text-align:left;"> Mean (Sd) </td>
-   <td style="text-align:left;"> 57.88(23.19) </td>
-   <td style="text-align:left;"> 50.89(22.41) </td>
+   <td style="text-align:left;"> 57.87(22.87) </td>
+   <td style="text-align:left;"> 52.48(21.74) </td>
    <td style="text-align:left;"> 50.19(23.39) </td>
    <td style="text-align:left;"> 63.79(17.70) </td>
    <td style="text-align:left;"> 49.39(23.51) </td>
-   <td style="text-align:left;"> 50.98(26.53) </td>
+   <td style="text-align:left;"> 50.93(26.59) </td>
    <td style="text-align:left;"> 62.06(19.08) </td>
-   <td style="text-align:left;"> 52.83(21.30) </td>
+   <td style="text-align:left;"> 52.95(21.39) </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Percent Under 1yr </td>
    <td style="text-align:left;"> Mean (Sd) </td>
-   <td style="text-align:left;"> 8.92(13.20) </td>
-   <td style="text-align:left;"> 2.45(8.56) </td>
+   <td style="text-align:left;"> 9.03(13.25) </td>
+   <td style="text-align:left;"> 1.60(3.53) </td>
    <td style="text-align:left;"> 0.68(4.63) </td>
    <td style="text-align:left;"> 1.73(3.60) </td>
    <td style="text-align:left;"> 0.76(4.06) </td>
-   <td style="text-align:left;"> 0.69(3.16) </td>
+   <td style="text-align:left;"> 0.70(3.16) </td>
    <td style="text-align:left;"> 0.69(2.43) </td>
-   <td style="text-align:left;"> 1.30(6.53) </td>
+   <td style="text-align:left;"> 1.32(6.58) </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Percent 1yr to 4yr </td>
    <td style="text-align:left;"> Mean (Sd) </td>
-   <td style="text-align:left;"> 27.24(27.23) </td>
-   <td style="text-align:left;"> 19.65(21.22) </td>
+   <td style="text-align:left;"> 27.27(27.26) </td>
+   <td style="text-align:left;"> 21.04(21.40) </td>
    <td style="text-align:left;"> 2.77(6.73) </td>
    <td style="text-align:left;"> 11.37(16.50) </td>
    <td style="text-align:left;"> 7.55(16.47) </td>
-   <td style="text-align:left;"> 5.64(12.53) </td>
+   <td style="text-align:left;"> 5.67(12.56) </td>
    <td style="text-align:left;"> 4.63(11.09) </td>
-   <td style="text-align:left;"> 6.82(14.16) </td>
+   <td style="text-align:left;"> 6.93(14.25) </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Percent 20yr to 49yr </td>
    <td style="text-align:left;"> Mean (Sd) </td>
-   <td style="text-align:left;"> 20.36(21.92) </td>
-   <td style="text-align:left;"> 27.52(24.82) </td>
+   <td style="text-align:left;"> 20.30(21.88) </td>
+   <td style="text-align:left;"> 27.14(25.51) </td>
    <td style="text-align:left;"> 46.73(30.64) </td>
    <td style="text-align:left;"> 25.71(20.86) </td>
    <td style="text-align:left;"> 41.72(29.70) </td>
-   <td style="text-align:left;"> 50.53(30.04) </td>
+   <td style="text-align:left;"> 50.48(30.11) </td>
    <td style="text-align:left;"> 50.53(22.96) </td>
-   <td style="text-align:left;"> 49.59(29.52) </td>
+   <td style="text-align:left;"> 49.42(29.69) </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Percent 5yr to 19yr </td>
    <td style="text-align:left;"> Mean (Sd) </td>
-   <td style="text-align:left;"> 31.53(29.37) </td>
-   <td style="text-align:left;"> 36.16(26.06) </td>
+   <td style="text-align:left;"> 31.29(28.93) </td>
+   <td style="text-align:left;"> 36.56(25.26) </td>
    <td style="text-align:left;"> 17.12(24.49) </td>
    <td style="text-align:left;"> 25.91(25.29) </td>
    <td style="text-align:left;"> 27.35(28.99) </td>
-   <td style="text-align:left;"> 19.33(25.60) </td>
+   <td style="text-align:left;"> 19.43(25.62) </td>
    <td style="text-align:left;"> 19.71(18.48) </td>
-   <td style="text-align:left;"> 19.00(22.71) </td>
+   <td style="text-align:left;"> 19.30(22.77) </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Percent 50yr or older </td>
    <td style="text-align:left;"> Mean (Sd) </td>
-   <td style="text-align:left;"> 11.95(17.62) </td>
-   <td style="text-align:left;"> 14.22(19.83) </td>
+   <td style="text-align:left;"> 12.10(17.68) </td>
+   <td style="text-align:left;"> 13.65(19.15) </td>
    <td style="text-align:left;"> 32.70(31.06) </td>
    <td style="text-align:left;"> 35.29(31.76) </td>
    <td style="text-align:left;"> 22.63(24.66) </td>
-   <td style="text-align:left;"> 23.81(28.02) </td>
+   <td style="text-align:left;"> 23.73(28.07) </td>
    <td style="text-align:left;"> 24.44(20.83) </td>
-   <td style="text-align:left;"> 23.29(26.57) </td>
+   <td style="text-align:left;"> 23.04(26.67) </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Percent Hospitalized </td>
    <td style="text-align:left;"> Mean (Sd) </td>
    <td style="text-align:left;"> 0.28(0.26) </td>
-   <td style="text-align:left;"> 0.31(0.28) </td>
+   <td style="text-align:left;"> 0.31(0.29) </td>
    <td style="text-align:left;"> 0.18(0.24) </td>
    <td style="text-align:left;"> 0.27(0.19) </td>
    <td style="text-align:left;"> 0.31(0.30) </td>
    <td style="text-align:left;"> 0.23(0.28) </td>
    <td style="text-align:left;"> 0.27(0.23) </td>
-   <td style="text-align:left;"> 0.24(0.25) </td>
+   <td style="text-align:left;"> 0.25(0.25) </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Length (in days) of Outbreak </td>
    <td style="text-align:left;"> Mean (Sd) </td>
-   <td style="text-align:left;"> 43.92(125.49) </td>
-   <td style="text-align:left;"> 33.53(57.55) </td>
+   <td style="text-align:left;"> 44.97(127.00) </td>
+   <td style="text-align:left;"> 36.47(60.24) </td>
    <td style="text-align:left;"> 8.77(20.34) </td>
    <td style="text-align:left;"> 7.23(11.26) </td>
    <td style="text-align:left;"> 7.48(19.54) </td>
    <td style="text-align:left;"> 5.88(42.01) </td>
    <td style="text-align:left;"> 10.47(18.43) </td>
-   <td style="text-align:left;"> 8.13(15.06) </td>
+   <td style="text-align:left;"> 8.25(15.21) </td>
   </tr>
 </tbody>
 </table>
@@ -432,27 +432,27 @@ Calibration curves are shown in figure 3.
 <tbody>
   <tr>
    <td style="text-align:left;"> Random Forest </td>
+   <td style="text-align:right;"> 0.096 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Boosted Trees </td>
    <td style="text-align:right;"> 0.098 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Weighted k-Nearest Neighbors </td>
-   <td style="text-align:right;"> 0.098 </td>
+   <td style="text-align:right;"> 0.099 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Multivariate Adaptive Regression Spline </td>
-   <td style="text-align:right;"> 0.100 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Boosted Trees </td>
-   <td style="text-align:right;"> 0.103 </td>
+   <td style="text-align:right;"> 0.101 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> CART </td>
-   <td style="text-align:right;"> 0.106 </td>
+   <td style="text-align:right;"> 0.105 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Adaboost.M1 </td>
-   <td style="text-align:right;"> 0.110 </td>
+   <td style="text-align:right;"> 0.111 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Null </td>
@@ -474,7 +474,7 @@ animal contact outbreaks including
 one of our predicted categories. These were not excluded from evaluation 
 metrics to more accurately reflect real world performance. The selected 
 random forest model had a brier score of 
-0.098. 
+0.097. 
 The calibration plot is shown in figure 4. Fruit and animal contact 
 outbreaks were the most under-predicted. Dairy, meat and egg outbreaks
 were the most over-predicted. 
@@ -483,8 +483,8 @@ were the most over-predicted.
 ![](StatisticalSummary_files/figure-html/validation_calplot-1.png)<!-- -->
 
 Overall, the correct outbreak 
-was in the top two predicted for 64 
-(65%) of outbreaks. The percentage of outbreaks
+was in the top two predicted for 60 
+(61%) of outbreaks. The percentage of outbreaks
 where the correct category was in the top two predictions by actual 
 outbreak source is shown in figure 5. 
 
@@ -525,14 +525,14 @@ outbreak source is shown in figure 5.
    <td style="text-align:left;"> Enteritidis </td>
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 22 </td>
-   <td style="text-align:right;"> 57 </td>
+   <td style="text-align:right;"> 56 </td>
    <td style="text-align:right;"> 5 </td>
    <td style="text-align:right;"> 123 </td>
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 16 </td>
    <td style="text-align:right;"> 5 </td>
    <td style="text-align:right;"> 2 </td>
-   <td style="text-align:right;"> 16 </td>
+   <td style="text-align:right;"> 15 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Group B </td>
@@ -705,7 +705,7 @@ outbreak source is shown in figure 5.
   </tr>
   <tr>
    <td style="text-align:left;"> Typhimurium </td>
-   <td style="text-align:right;"> 33 </td>
+   <td style="text-align:right;"> 32 </td>
    <td style="text-align:right;"> 29 </td>
    <td style="text-align:right;"> 22 </td>
    <td style="text-align:right;"> 3 </td>
@@ -743,43 +743,17 @@ outbreak source is shown in figure 5.
    <td style="text-align:right;"> -- </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> Primary Animal </td>
-   <td style="text-align:right;"> 15 </td>
+   <td style="text-align:left;"> Mixed </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> -- </td>
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 5 </td>
    <td style="text-align:right;"> -- </td>
-   <td style="text-align:right;"> -- </td>
-   <td style="text-align:right;"> -- </td>
-   <td style="text-align:right;"> 2 </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> -- </td>
-   <td style="text-align:right;"> 1 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Mixed </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 11 </td>
-   <td style="text-align:right;"> 8 </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 2 </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 7 </td>
-   <td style="text-align:right;"> 5 </td>
-   <td style="text-align:right;"> -- </td>
-   <td style="text-align:right;"> 7 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Primary Plant </td>
-   <td style="text-align:right;"> -- </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> -- </td>
-   <td style="text-align:right;"> -- </td>
-   <td style="text-align:right;"> -- </td>
-   <td style="text-align:right;"> -- </td>
-   <td style="text-align:right;"> 7 </td>
-   <td style="text-align:right;"> 2 </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 6 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Rare </td>
@@ -788,7 +762,7 @@ outbreak source is shown in figure 5.
    <td style="text-align:right;"> 12 </td>
    <td style="text-align:right;"> -- </td>
    <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 4 </td>
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> -- </td>
@@ -805,20 +779,33 @@ outbreak source is shown in figure 5.
    <td style="text-align:right;"> 5 </td>
    <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> -- </td>
-   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 6 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> STEC </td>
-   <td style="text-align:right;"> 45 </td>
+   <td style="text-align:right;"> 44 </td>
    <td style="text-align:right;"> 144 </td>
    <td style="text-align:right;"> 3 </td>
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> -- </td>
-   <td style="text-align:right;"> 36 </td>
+   <td style="text-align:right;"> 33 </td>
    <td style="text-align:right;"> 61 </td>
    <td style="text-align:right;"> 17 </td>
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 19 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> -- </td>
+   <td style="text-align:right;"> 15 </td>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> -- </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 9 </td>
   </tr>
 </tbody>
 </table>
@@ -1082,27 +1069,27 @@ outbreak source is shown in figure 5.
 ## 
 ##   only 20 most important variables shown (out of 31)
 ## 
-##                         Overall
-## serogroupEnteritidis    100.000
-## serogroupSTEC            89.799
-## geographysingle_county   87.131
-## percent_age_under1       66.700
-## percent_age20to49        63.794
-## geographymulti_state     60.541
-## percent_age1to4          38.963
-## percent_age5to19         30.437
-## percent_age50plus        21.262
-## month                    20.188
-## serogroupHeidelberg      19.147
-## percent_female           18.160
-## serogroupTyphimurium     15.675
-## serogroupGroup2           9.542
-## serogroupI 4,[5],12:i:-   9.377
-## serogroupNewport          8.285
-## serogroupInfantis         6.964
-## serogroupPoona            6.513
-## serogroupJaviana          6.335
-## serogroupGroup1           5.884
+##                           Overall
+## serogroupEnteritidis      100.000
+## serogroupSTEC              94.558
+## geographysingle_county     72.438
+## percent_age20to49          68.055
+## geographymulti_state       47.965
+## percent_age_under1         45.847
+## percent_age1to4            33.925
+## percent_age50plus          30.775
+## percent_age5to19           30.130
+## percent_female             26.375
+## month                      20.068
+## serogroupHeidelberg         8.324
+## serogroupI 4,[5],12:i:-     6.423
+## serogroupPrimarily Animal   4.927
+## serogroupNewport            3.994
+## serogroupUganda             3.808
+## serogroupJaviana            3.410
+## serogroupInfantis           2.959
+## serogroupPrimarily Plant    2.945
+## serogroupSaintpaul          2.404
 ```
 
 

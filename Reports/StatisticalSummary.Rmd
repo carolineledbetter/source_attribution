@@ -551,9 +551,7 @@ analysis %>%
     serogroup = case_when(
       serogroup == 'rare' ~ 'Rare', 
       is.na(serogroup) ~ 'Other', 
-      serogroup == 'Group1' ~ 'Primary Animal', 
-      serogroup == 'Group2' ~ 'Mixed', 
-      serogroup == 'Group3' ~ 'Primary Plant', 
+      
       TRUE ~ serogroup
   ), 
   serogroup = factor(serogroup, 

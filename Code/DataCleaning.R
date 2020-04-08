@@ -112,7 +112,6 @@ GenEtiology <-
   ) 
 
 GenEtiology %>% 
-  filter(GenusName %in% c('Escherichia', 'Salmonella')) %>% 
   arrange(Confirmed, desc(NumberLabConfirmed)) %>% 
   mutate(CDCID = as.character(CDCID), 
          genus = GenusName, 
@@ -120,7 +119,8 @@ GenEtiology %>%
                             'STEC',
                             SerotypeName)) %>% 
   select(cdcid = CDCID, genus, serotype) %>% 
-  distinct(cdcid, .keep_all = TRUE) -> agent
+  distinct(cdcid, .keep_all = TRUE) %>% 
+  filter(genus %in% c('Escherichia', 'Salmonella')) -> agent
 
 agent %>% count(genus, serotype) %>% view
 
@@ -179,7 +179,7 @@ analysis <-
                       total_cases, month, hosp_percent, geography, season, 
                       death_percent, outbreak_length, 
                       primary_mode, year) %>% 
-  left_join(agent) %>% 
+  right_join(agent) %>% 
   right_join(x = analysis, y = .) %>% 
   mutate(attr_source = case_when(
     primary_mode == 'Animal Contact' ~ 'Animal Contact', 
@@ -187,8 +187,9 @@ analysis <-
   filter(!is.na(attr_source)) %>% 
   select(-food_source, -primary_mode) %>% as_tibble()
 
+n_not_enteric <- NORSMain %>% anti_join(agent) %>% nrow()
 n_animal_contact <- nrow(filter(NORSMain, primary_mode == 'Animal Contact') )
-
+n_start <- n_start - n_not_enteric
 analysis %>% 
   select(serotype, attr_source) %>% 
   add_count(serotype) %>% 
@@ -216,9 +217,9 @@ uncommon_sero <- uncommon_sero %>%
                    newdata = uncommon_sero, 
                    type = 'response'), 
          serogroup = case_when(
-           pred_source <= 1/3 ~ 'Group1', 
-           pred_source <= 2/3 ~ 'Group2', 
-           TRUE ~ 'Group3'
+           pred_source <= 1/3 ~ 'Primarily Animal', 
+           pred_source <= 2/3 ~ 'Mixed', 
+           TRUE ~ 'Primarily Plant'
          )
   ) %>% select(serotype, serogroup) %>% 
   distinct()
